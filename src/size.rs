@@ -6,8 +6,6 @@ use std::str::FromStr;
 
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(test, derive(arbitrary::Arbitrary))]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(transparent))]
 #[repr(transparent)]
 pub struct Size(pub u64);
 
@@ -18,12 +16,12 @@ impl Display for Size {
             ""
         } else {
             let mut unit = "";
-            for i in 0..UNITS.len() {
-                if size % UNITS[i].0 as u64 != 0 {
+            for u in &UNITS {
+                if size % u.0 as u64 != 0 {
                     break;
                 }
-                size /= UNITS[i].0 as u64;
-                unit = UNITS[i].1;
+                size /= u.0 as u64;
+                unit = u.1;
             }
             unit
         };
@@ -39,7 +37,7 @@ impl FromStr for Size {
             None => Err(SizeError),
             Some(i) => {
                 let size: u64 = other[..=i].parse().map_err(|_| SizeError)?;
-                let unit = &other[(i + 1)..].to_ascii_lowercase();
+                let unit = &other[(i + 1)..].trim().to_ascii_lowercase();
                 let factor = unit_to_factor(unit)?;
                 Ok(Self(size * factor))
             }
@@ -128,7 +126,10 @@ mod tests {
                 ])
                 .unwrap();
             let number: u64 = u.int_in_range(0_u64..=max)?;
-            let expected = format!("{}{}", number, unit);
+            let prefix = *u.choose(&["", " ", "  "]).unwrap();
+            let infix = *u.choose(&["", " ", "  "]).unwrap();
+            let suffix = *u.choose(&["", " ", "  "]).unwrap();
+            let expected = format!("{}{}{}{}{}", prefix, number, infix, unit, suffix);
             let expected_size: Size = expected.parse().unwrap();
             let actual = expected_size.to_string();
             let actual_size: Size = actual.parse().unwrap();
@@ -142,3 +143,5 @@ mod tests {
         });
     }
 }
+
+// TODO docs

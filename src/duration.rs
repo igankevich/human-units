@@ -7,8 +7,6 @@ use std::time::Duration as StdDuration;
 
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(test, derive(arbitrary::Arbitrary))]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(transparent))]
 #[repr(transparent)]
 pub struct Duration(pub StdDuration);
 
@@ -19,12 +17,12 @@ impl Display for Duration {
             "s"
         } else {
             let mut unit = "ns";
-            for i in 0..UNITS.len() {
-                if duration % UNITS[i].0 as u128 != 0 {
+            for u in &UNITS {
+                if duration % u.0 as u128 != 0 {
                     break;
                 }
-                duration /= UNITS[i].0 as u128;
-                unit = UNITS[i].1;
+                duration /= u.0 as u128;
+                unit = u.1;
             }
             unit
         };
@@ -40,7 +38,7 @@ impl FromStr for Duration {
             None => Err(DurationError),
             Some(i) => {
                 let duration: u128 = other[..=i].parse().map_err(|_| DurationError)?;
-                let unit = &other[(i + 1)..];
+                let unit = other[(i + 1)..].trim();
                 let factor = unit_to_factor(unit)? as u128;
                 let duration = duration * factor;
                 Ok(Self(StdDuration::new(
@@ -173,7 +171,10 @@ mod tests {
                 ])
                 .unwrap();
             let number: u128 = u.int_in_range(0_u128..=max)?;
-            let expected = format!("{}{}", number, unit);
+            let prefix = *u.choose(&["", " ", "  "]).unwrap();
+            let infix = *u.choose(&["", " ", "  "]).unwrap();
+            let suffix = *u.choose(&["", " ", "  "]).unwrap();
+            let expected = format!("{}{}{}{}{}", prefix, number, infix, unit, suffix);
             let expected_duration: Duration = expected.parse().unwrap();
             let actual = expected_duration.to_string();
             let actual_duration: Duration = actual.parse().unwrap();
