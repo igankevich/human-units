@@ -1,30 +1,30 @@
-use std::fmt::Display;
-use std::fmt::Formatter;
-use std::ops::Deref;
-use std::ops::DerefMut;
-use std::str::FromStr;
-use std::time::Duration as StdDuration;
+use core::ops::Deref;
+use core::ops::DerefMut;
+use core::str::FromStr;
+use core::time::Duration as StdDuration;
 
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
-#[cfg_attr(test, derive(arbitrary::Arbitrary))]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(transparent))]
+#[cfg_attr(all(test, not(feature = "no_std")), derive(arbitrary::Arbitrary))]
 #[repr(transparent)]
 pub struct Duration(pub StdDuration);
 
-impl Display for Duration {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+impl Duration {
+    pub const MAX_STRING_LEN: usize = 31;
+}
+
+impl core::fmt::Display for Duration {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         let mut duration = self.0.as_nanos();
         let unit = if duration == 0 {
             "s"
         } else {
             let mut unit = "ns";
-            for i in 0..UNITS.len() {
-                if duration % UNITS[i].0 as u128 != 0 {
+            for u in &UNITS {
+                if duration % u.0 as u128 != 0 {
                     break;
                 }
-                duration /= UNITS[i].0 as u128;
-                unit = UNITS[i].1;
+                duration /= u.0 as u128;
+                unit = u.1;
             }
             unit
         };
@@ -40,7 +40,7 @@ impl FromStr for Duration {
             None => Err(DurationError),
             Some(i) => {
                 let duration: u128 = other[..=i].parse().map_err(|_| DurationError)?;
-                let unit = &other[(i + 1)..];
+                let unit = other[(i + 1)..].trim();
                 let factor = unit_to_factor(unit)? as u128;
                 let duration = duration * factor;
                 Ok(Self(StdDuration::new(
@@ -105,7 +105,7 @@ const UNITS: [(u16, &str); 6] = [
 
 const NANOS_PER_SEC: u32 = 1_000_000_000_u32;
 
-#[cfg(test)]
+#[cfg(all(test, not(feature = "no_std")))]
 mod tests {
 
     use arbtest::arbtest;
@@ -173,7 +173,10 @@ mod tests {
                 ])
                 .unwrap();
             let number: u128 = u.int_in_range(0_u128..=max)?;
-            let expected = format!("{}{}", number, unit);
+            let prefix = *u.choose(&["", " ", "  "]).unwrap();
+            let infix = *u.choose(&["", " ", "  "]).unwrap();
+            let suffix = *u.choose(&["", " ", "  "]).unwrap();
+            let expected = format!("{}{}{}{}{}", prefix, number, infix, unit, suffix);
             let expected_duration: Duration = expected.parse().unwrap();
             let actual = expected_duration.to_string();
             let actual_duration: Duration = actual.parse().unwrap();
@@ -182,10 +185,13 @@ mod tests {
                 "string 1 = `{}`, string 2 = `{}`",
                 expected, actual
             );
-            assert!(expected == actual || actual_duration.0.as_nanos() % number == 0 || number == 0);
+            assert!(
+                expected == actual || actual_duration.0.as_nanos() % number == 0 || number == 0
+            );
             Ok(())
         });
     }
 
-    const MAX_NANOSECONDS: u128 = (u64::MAX as u128) * (NANOS_PER_SEC as u128) + (NANOS_PER_SEC as u128) - 1_u128;
+    const MAX_NANOSECONDS: u128 =
+        (u64::MAX as u128) * (NANOS_PER_SEC as u128) + (NANOS_PER_SEC as u128) - 1_u128;
 }

@@ -1,6 +1,6 @@
-use std::fmt::Display;
-use std::fmt::Formatter;
-use std::time::Duration;
+use core::fmt::Display;
+use core::fmt::Formatter;
+use core::time::Duration;
 
 pub struct FormattedDuration {
     pub unit: &'static str,
@@ -9,7 +9,7 @@ pub struct FormattedDuration {
 }
 
 impl Display for FormattedDuration {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter) -> core::fmt::Result {
         write!(f, "{}", self.integer)?;
         if self.fraction != 0 {
             write!(f, ".{}", self.fraction)?;
@@ -76,11 +76,13 @@ impl FormatDuration for Duration {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(feature = "no_std")))]
 mod tests {
+    use core::time::Duration;
+
     use arbtest::arbtest;
 
-    use super::*;
+    use crate::FormatDuration;
 
     #[test]
     fn test_format_duration() {
