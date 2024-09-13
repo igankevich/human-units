@@ -1,16 +1,19 @@
-use std::fmt::Display;
-use std::fmt::Formatter;
-use std::ops::Deref;
-use std::ops::DerefMut;
-use std::str::FromStr;
+use core::ops::Deref;
+use core::ops::DerefMut;
+use core::str::FromStr;
 
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
-#[cfg_attr(test, derive(arbitrary::Arbitrary))]
+#[cfg_attr(all(test, not(feature = "no_std")), derive(arbitrary::Arbitrary))]
 #[repr(transparent)]
 pub struct Size(pub u64);
 
-impl Display for Size {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+impl Size {
+    #[cfg(feature = "serde")]
+    pub const MAX_STRING_LEN: usize = 20;
+}
+
+impl core::fmt::Display for Size {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         let mut size = self.0;
         let unit = if size == 0 {
             ""
@@ -37,8 +40,12 @@ impl FromStr for Size {
             None => Err(SizeError),
             Some(i) => {
                 let size: u64 = other[..=i].parse().map_err(|_| SizeError)?;
-                let unit = &other[(i + 1)..].trim().to_ascii_lowercase();
-                let factor = unit_to_factor(unit)?;
+                let unit = other[(i + 1)..].trim();
+                let factor = match unit.len() {
+                    0 => 1_u64,
+                    1 => unit_to_factor(unit.as_bytes()[0])?,
+                    _ => return Err(SizeError),
+                };
                 Ok(Self(size * factor))
             }
         }
@@ -74,20 +81,19 @@ impl DerefMut for Size {
 #[derive(Debug)]
 pub struct SizeError;
 
-fn unit_to_factor(unit: &str) -> Result<u64, SizeError> {
+const fn unit_to_factor(unit: u8) -> Result<u64, SizeError> {
     match unit {
-        "" => Ok(1_u64),
-        "k" => Ok(1024_u64),
-        "m" => Ok(1024_u64 * 1024_u64),
-        "g" => Ok(1024_u64 * 1024_u64 * 1024_u64),
-        "t" => Ok(1024_u64 * 1024_u64 * 1024_u64 * 1024_u64),
+        b'k' | b'K' => Ok(1024_u64),
+        b'm' | b'M' => Ok(1024_u64 * 1024_u64),
+        b'g' | b'G' => Ok(1024_u64 * 1024_u64 * 1024_u64),
+        b't' | b'T' => Ok(1024_u64 * 1024_u64 * 1024_u64 * 1024_u64),
         _ => Err(SizeError),
     }
 }
 
 const UNITS: [(u16, &str); 4] = [(1024, "k"), (1024, "m"), (1024, "g"), (1024, "t")];
 
-#[cfg(test)]
+#[cfg(all(test, not(feature = "no_std")))]
 mod tests {
 
     use arbtest::arbtest;
@@ -125,6 +131,10 @@ mod tests {
                     ("t", u64::MAX >> 40),
                 ])
                 .unwrap();
+            let mut unit = unit.to_string();
+            if u.arbitrary::<bool>()? {
+                unit.make_ascii_uppercase();
+            }
             let number: u64 = u.int_in_range(0_u64..=max)?;
             let prefix = *u.choose(&["", " ", "  "]).unwrap();
             let infix = *u.choose(&["", " ", "  "]).unwrap();
@@ -143,5 +153,3 @@ mod tests {
         });
     }
 }
-
-// TODO docs
