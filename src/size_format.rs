@@ -1,6 +1,8 @@
 use core::fmt::Display;
 use core::fmt::Formatter;
+use core::fmt::Write;
 
+use crate::Buffer;
 use crate::Size;
 
 /**
@@ -20,20 +22,27 @@ pub struct FormattedSize {
 
 impl Display for FormattedSize {
     fn fmt(&self, f: &mut Formatter) -> core::fmt::Result {
-        write!(f, "{}", self.integer)?;
+        let mut buf = Buffer::<MAX_LEN>::new();
+        buf.write_u64(self.integer as u64, MAX_POWOF10);
         if self.fraction != 0 {
-            write!(f, ".{}", self.fraction)?;
+            buf.write_byte(b'.');
+            buf.write_byte(b'0' + self.fraction);
         }
-        write!(f, " {}", self.unit)
+        buf.write_byte(b' ');
+        buf.write_str(self.unit)?;
+        f.write_str(unsafe { buf.as_str() })
     }
 }
+
+const MAX_LEN: usize = 8;
+const MAX_POWOF10: u64 = 1000;
 
 /**
 This trait adds [`format_size`](FormatSize::format_size) method
 to primitive [`u64`](core::u64) and [`usize`](core::u64) types.
 */
 pub trait FormatSize {
-    /// Splits the original size into integral, fractional and unit parts.
+    /// Splits the original size into integral, fractional and adds a unit.
     fn format_size(self) -> FormattedSize;
 }
 
@@ -79,13 +88,14 @@ mod tests {
     #![allow(clippy::panic)]
     use arbtest::arbtest;
 
+    use super::*;
     use crate::FormatSize;
 
     #[test]
     fn test_format_bytes() {
+        assert_eq!("512 B", 512_u64.format_size().to_string());
         assert_eq!("0 B", 0_u64.format_size().to_string());
         assert_eq!("1 B", 1_u64.format_size().to_string());
-        assert_eq!("512 B", 512_u64.format_size().to_string());
         assert_eq!("1 KiB", 1024_u64.format_size().to_string());
         assert_eq!("512 KiB", (512_u64 * 1024).format_size().to_string());
         assert_eq!("1023 B", 1023_u64.format_size().to_string());
@@ -104,6 +114,7 @@ mod tests {
         );
         assert_eq!("3.9 GiB", (u32::MAX as u64).format_size().to_string());
         assert_eq!("15.9 EiB", u64::MAX.format_size().to_string());
+        assert_eq!(MAX_LEN, u64::MAX.format_size().to_string().len());
     }
 
     #[test]
