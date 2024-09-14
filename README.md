@@ -3,7 +3,7 @@
 `human-units` is a library with `Size` and `Duration` types specifically designed to be used in configuration files and as command line arguments.
 These types serialize sizes and durations in _exact_ but human-readable form.
 
-The library also provides [`FormatSize`] and [`FormatDuration`] traits
+The library also provides `FormatSize` and `FormatDuration` traits
 to print _approximate_ sizes and durations in a short human-readable form.
 
 - No floating point operations.
