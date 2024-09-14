@@ -11,7 +11,7 @@ EOF
 }
 
 cargo_publish() {
-    cargo publish --all-features --dry-run
+    cargo publish --all-features --quiet --dry-run
 }
 
 # TODO

@@ -7,9 +7,6 @@ jobs:
     container:
       image: ghcr.io/igankevich/human-units-ci:latest
       options: --cap-add SYS_PTRACE
-    permissions:
-      packages: write
-      contents: write
     env:
       TZ: Europe/Berlin
       RUST_BACKTRACE: 1
