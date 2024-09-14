@@ -33,7 +33,7 @@ impl core::fmt::Display for Duration {
                 if duration % d != 0 {
                     break;
                 }
-                duration = duration / d;
+                duration /= d;
                 unit = u.1;
             }
             unit

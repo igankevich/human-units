@@ -32,7 +32,7 @@ impl core::fmt::Display for Size {
                 if size % d != 0 {
                     break;
                 }
-                size = size / d;
+                size /= d;
                 unit = u.1;
             }
             unit
