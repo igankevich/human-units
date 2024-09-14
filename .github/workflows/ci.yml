@@ -1,0 +1,35 @@
+---
+name: CI
+on: [push]
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/igankevich/human-utils-ci:latest
+      credentials:
+        username: token
+        password: ${{ secrets.GHCR_TOKEN }}
+      options: --cap-add SYS_PTRACE
+    permissions:
+      packages: write
+      contents: write
+    env:
+      TZ: Europe/Berlin
+      RUST_BACKTRACE: 1
+      CIJAIL_ENDPOINTS: |
+        https://github.com/lyz-code/yamlfix/
+        https://pypi.org/simple/
+        https://files.pythonhosted.org/packages/
+        https://static.crates.io/crates/
+        https://index.crates.io/
+        https://github.com/rustsec/advisory-db
+        https://static.rust-lang.org/dist/
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.1.4
+      - name: Lint
+        run: cijail ./ci/lint.sh
+      - name: Test
+        run: cijail ./ci/test.sh
+      - name: Miri
+        run: cijail ./ci/miri.sh

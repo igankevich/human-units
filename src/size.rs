@@ -1,14 +1,22 @@
+use core::num::NonZeroU16;
+use core::num::NonZeroU64;
 use core::ops::Deref;
 use core::ops::DerefMut;
 use core::str::FromStr;
 
+/**
+Exact size in bytes.
+
+The intended use is the configuration files where exact numbers are required,
+i.e. cache size, maximum HTTP body size etc.
+*/
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(all(test, not(feature = "no_std")), derive(arbitrary::Arbitrary))]
 #[repr(transparent)]
 pub struct Size(pub u64);
 
 impl Size {
-    #[cfg(feature = "serde")]
+    /// Max. length in string form.
     pub const MAX_STRING_LEN: usize = 20;
 }
 
@@ -19,11 +27,12 @@ impl core::fmt::Display for Size {
             ""
         } else {
             let mut unit = "";
-            for u in &UNITS {
-                if size % u.0 as u64 != 0 {
+            for u in UNITS {
+                let d: NonZeroU64 = u.0.into();
+                if size % d != 0 {
                     break;
                 }
-                size /= u.0 as u64;
+                size = size / d;
                 unit = u.1;
             }
             unit
@@ -78,6 +87,7 @@ impl DerefMut for Size {
     }
 }
 
+/// Size parsing error.
 #[derive(Debug)]
 pub struct SizeError;
 
@@ -91,21 +101,56 @@ const fn unit_to_factor(unit: u8) -> Result<u64, SizeError> {
     }
 }
 
-const UNITS: [(u16, &str); 4] = [(1024, "k"), (1024, "m"), (1024, "g"), (1024, "t")];
+const UNITS: [(NonZeroU16, &str); 4] = [
+    (unsafe { NonZeroU16::new_unchecked(1024) }, "k"),
+    (unsafe { NonZeroU16::new_unchecked(1024) }, "m"),
+    (unsafe { NonZeroU16::new_unchecked(1024) }, "g"),
+    (unsafe { NonZeroU16::new_unchecked(1024) }, "t"),
+];
 
 #[cfg(all(test, not(feature = "no_std")))]
 mod tests {
 
     use arbtest::arbtest;
+    use std::ops::AddAssign;
 
     use super::*;
 
     #[test]
-    fn test_duration_display() {
+    fn test_display() {
         assert_eq!("0", Size(0).to_string());
         assert_eq!("1023", Size(1023).to_string());
         assert_eq!("1k", Size(1024).to_string());
         assert_eq!("1025", Size(1025).to_string());
+    }
+
+    #[test]
+    fn test_parse() {
+        assert_eq!("Err(SizeError)", format!("{:?}", "2km".parse::<Size>()));
+        assert_eq!("Err(SizeError)", format!("{:?}", "2s".parse::<Size>()));
+        assert_eq!("Err(SizeError)", format!("{:?}", "k".parse::<Size>()));
+        assert_eq!("Err(SizeError)", format!("{:?}", "".parse::<Size>()));
+        assert_eq!(
+            "Err(SizeError)",
+            format!("{:?}", format!("{}0", u64::MAX).parse::<Size>())
+        );
+    }
+
+    #[test]
+    fn test_deref() {
+        assert_eq!(1, *Size(1));
+        let mut tmp = Size(1);
+        tmp.add_assign(1);
+        assert_eq!(2, *tmp);
+    }
+
+    #[test]
+    fn test_from_into() {
+        let d1 = Size(1);
+        let d2: u64 = d1.into();
+        let d3: Size = d2.into();
+        assert_eq!(d1, d3);
+        assert_eq!(d1.0, d2);
     }
 
     #[test]

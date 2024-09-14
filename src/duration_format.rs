@@ -1,10 +1,20 @@
 use core::fmt::Display;
 use core::fmt::Formatter;
-use core::time::Duration;
 
+use crate::Duration;
+
+/**
+Formatted duration that includes unit, integral and fractional parts as fields.
+
+This type is useful when you need custom formatting of the output,
+i.e. colors, locale-specific units etc.
+*/
 pub struct FormattedDuration {
+    /// Duration unit.
     pub unit: &'static str,
+    /// Integral part.
     pub integer: u64,
+    /// Fractional part. Max. value is 9.
     pub fraction: u8, // max. value 9
 }
 
@@ -18,11 +28,16 @@ impl Display for FormattedDuration {
     }
 }
 
+/**
+This trait adds [`format_duration`](FormatDuration::format_duration) method to
+standard [Duration](core::time::Duration) type.
+*/
 pub trait FormatDuration {
+    /// Splits the original duration into integral, fractional and unit parts.
     fn format_duration(self) -> FormattedDuration;
 }
 
-impl FormatDuration for Duration {
+impl FormatDuration for core::time::Duration {
     fn format_duration(self) -> FormattedDuration {
         let seconds = self.as_secs();
         let nanoseconds = self.subsec_nanos();
@@ -76,8 +91,15 @@ impl FormatDuration for Duration {
     }
 }
 
+impl FormatDuration for Duration {
+    fn format_duration(self) -> FormattedDuration {
+        FormatDuration::format_duration(self.0)
+    }
+}
+
 #[cfg(all(test, not(feature = "no_std")))]
 mod tests {
+    #![allow(clippy::panic)]
     use core::time::Duration;
 
     use arbtest::arbtest;
