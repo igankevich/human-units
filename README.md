@@ -4,7 +4,7 @@
 [![Docs](https://docs.rs/human-units/badge.svg)](https://docs.rs/human-units)
 [![dependency status](https://deps.rs/repo/github/igankevich/human-units/status.svg)](https://deps.rs/repo/github/igankevich/human-units)
 
-Size and duration serialization library designed for configuration files and command line arguments.
+Size and duration serialization and formatting library designed for configuration files and command line arguments.
 
 
 ## Introduction
