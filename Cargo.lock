@@ -61,7 +61,7 @@ checksum = "f58b778a5761513caf593693f8951c97a5b610841e754788400f32102eefdff1"
 
 [[package]]
 name = "human-units"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "arbitrary",
  "arbtest",

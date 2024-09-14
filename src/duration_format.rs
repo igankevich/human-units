@@ -20,6 +20,8 @@ pub struct FormattedDuration {
     pub fraction: u8,
 }
 
+// TODO test FormattedDuration
+
 impl Display for FormattedDuration {
     fn fmt(&self, f: &mut Formatter) -> core::fmt::Result {
         let mut buf = Buffer::<MAX_LEN>::new();
@@ -34,9 +36,7 @@ impl Display for FormattedDuration {
     }
 }
 
-const MAX_LEN: usize = 19;
-#[cfg(test)]
-const MAX_INTEGER: u64 = 213503982334601;
+const MAX_LEN: usize = 21;
 const MAX_POWOF10: u64 = 100000000000000;
 
 /**
@@ -113,6 +113,8 @@ mod tests {
     #![allow(clippy::panic)]
     use core::time::Duration;
 
+    use arbitrary::Arbitrary;
+    use arbitrary::Unstructured;
     use arbtest::arbtest;
 
     use super::*;
@@ -184,13 +186,6 @@ mod tests {
                 .to_string()
         );
         assert_eq!(
-            MAX_LEN,
-            Duration::new(u64::MAX, 999_999_999_u32)
-                .format_duration()
-                .to_string()
-                .len()
-        );
-        assert_eq!(
             MAX_INTEGER,
             Duration::new(u64::MAX, 999_999_999_u32)
                 .format_duration()
@@ -227,6 +222,37 @@ mod tests {
         });
     }
 
+    #[test]
+    fn test_formatted_duration_io() {
+        arbtest(|u| {
+            let expected: FormattedDuration = u.arbitrary()?;
+            let string = expected.to_string();
+            let mut words = string.splitn(2, ' ');
+            let number_str = words.next().unwrap();
+            let unit = words.next().unwrap().to_string();
+            let mut words = number_str.splitn(2, '.');
+            let integer: u64 = words.next().unwrap().parse().unwrap();
+            let fraction: u8 = match words.next() {
+                Some(word) => word.parse().unwrap(),
+                None => 0,
+            };
+            assert_eq!(expected.integer, integer);
+            assert_eq!(expected.fraction, fraction);
+            assert_eq!(expected.unit, unit, "expected = `{}`", expected);
+            Ok(())
+        });
+    }
+
+    impl<'a> Arbitrary<'a> for FormattedDuration {
+        fn arbitrary(u: &mut Unstructured<'a>) -> Result<Self, arbitrary::Error> {
+            Ok(Self {
+                unit: *u.choose(&UNITS[..])?,
+                integer: u.int_in_range(0..=MAX_INTEGER)?,
+                fraction: u.int_in_range(0..=9)?,
+            })
+        }
+    }
+
     fn unit_to_factor(unit: &str) -> u64 {
         match unit {
             "ns" => 1_u64,
@@ -239,4 +265,7 @@ mod tests {
             _ => panic!("unknown unit `{}`", unit),
         }
     }
+
+    const UNITS: [&str; 7] = ["ns", "μs", "ms", "s", "m", "h", "d"];
+    const MAX_INTEGER: u64 = 213503982334601;
 }
