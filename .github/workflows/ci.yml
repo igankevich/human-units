@@ -25,5 +25,5 @@ jobs:
         run: cijail ./ci/lint.sh
       - name: Test
         run: cijail ./ci/test.sh
-      - name: Pusblish
+      - name: Publish
         run: cijail ./ci/publish.sh
