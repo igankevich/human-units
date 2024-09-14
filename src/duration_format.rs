@@ -1,6 +1,8 @@
 use core::fmt::Display;
 use core::fmt::Formatter;
+use core::fmt::Write;
 
+use crate::Buffer;
 use crate::Duration;
 
 /**
@@ -12,28 +14,37 @@ i.e. colors, locale-specific units etc.
 pub struct FormattedDuration {
     /// Duration unit.
     pub unit: &'static str,
-    /// Integral part.
+    /// Integral part. Max. values is 213503982334601.
     pub integer: u64,
     /// Fractional part. Max. value is 9.
-    pub fraction: u8, // max. value 9
+    pub fraction: u8,
 }
 
 impl Display for FormattedDuration {
     fn fmt(&self, f: &mut Formatter) -> core::fmt::Result {
-        write!(f, "{}", self.integer)?;
+        let mut buf = Buffer::<MAX_LEN>::new();
+        buf.write_u64(self.integer, MAX_POWOF10);
         if self.fraction != 0 {
-            write!(f, ".{}", self.fraction)?;
+            buf.write_byte(b'.');
+            buf.write_byte(b'0' + self.fraction);
         }
-        write!(f, " {}", self.unit)
+        buf.write_byte(b' ');
+        buf.write_str(self.unit)?;
+        f.write_str(unsafe { buf.as_str() })
     }
 }
+
+const MAX_LEN: usize = 19;
+#[cfg(test)]
+const MAX_INTEGER: u64 = 213503982334601;
+const MAX_POWOF10: u64 = 100000000000000;
 
 /**
 This trait adds [`format_duration`](FormatDuration::format_duration) method to
 standard [Duration](core::time::Duration) type.
 */
 pub trait FormatDuration {
-    /// Splits the original duration into integral, fractional and unit parts.
+    /// Splits the original duration into integral, fractional and adds a unit.
     fn format_duration(self) -> FormattedDuration;
 }
 
@@ -104,6 +115,7 @@ mod tests {
 
     use arbtest::arbtest;
 
+    use super::*;
     use crate::FormatDuration;
 
     #[test]
@@ -170,6 +182,19 @@ mod tests {
             Duration::new(60 * 60 * 12 + 60 * 60 / 2, 1000 * 1000 * 1000 - 1)
                 .format_duration()
                 .to_string()
+        );
+        assert_eq!(
+            MAX_LEN,
+            Duration::new(u64::MAX, 999_999_999_u32)
+                .format_duration()
+                .to_string()
+                .len()
+        );
+        assert_eq!(
+            MAX_INTEGER,
+            Duration::new(u64::MAX, 999_999_999_u32)
+                .format_duration()
+                .integer
         );
     }
 

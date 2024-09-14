@@ -1,5 +1,9 @@
 # Introduction
 
+[![Crates.io Version](https://img.shields.io/crates/v/human-units)](https://crates.io/crates/human-units)
+[![Docs](https://docs.rs/human-units/badge.svg)](https://docs.rs/human-units)
+[![dependency status](https://deps.rs/repo/github/igankevich/human-units/status.svg)](https://deps.rs/repo/github/igankevich/human-units)
+
 `human-units` is a library with `Size` and `Duration` types specifically designed to be used in configuration files and as command line arguments.
 These types serialize sizes and durations in _exact_ but human-readable form.
 
@@ -11,6 +15,7 @@ to print _approximate_ sizes and durations in a short human-readable form.
 - Supports [Serde](https://serde.rs/).
 - Supports [`no_std`](https://docs.rust-embedded.org/book/intro/no-std.html).
 - Tested with [Miri](https://github.com/rust-lang/miri).
+- **72–85%** faster than similar libraries (see benchmarks below).
 
 
 # Examples
@@ -72,3 +77,22 @@ struct SizeWrapper {
 let object = SizeWrapper{ size: Size(1024) };
 assert_eq!(r#"{"size":"1k"}"#, serde_json::to_string(&object).unwrap());
 ```
+
+# Benchmarks
+
+Benchmarks were done with Rust 1.80.1 on a x86\_64 laptop.
+
+## Format size
+
+| Library | Version | Features | Benchmark | Time |
+|---------|---------|----------|-----------|------|
+| `human_bytes` | 0.4.3 | `fast`       | `format_size_then_to_string` | 88.40 ns ± 5.02 ns|
+| `human-repr`  | 1.1.0 | `1024,space` | `format_size_then_to_string` | 161.38 ns ± 13.29 ns|
+| `human-units` | 0.1.3 |              | `format_size_then_to_string` | **24.24 ns ± 1.23 ns** |
+
+## Format duration
+
+| Library | Version | Features | Benchmark | Time |
+|---------|---------|----------|-----------|------|
+| `human-repr`  | 1.1.0 | `1024,space` | `format_duration_then_to_string` | 229.47 ns ± 11.90 ns|
+| `human-units` | 0.1.3 |              | `format_duration_then_to_string` | **41.55 ns ± 2.77 ns** |

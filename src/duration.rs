@@ -22,6 +22,7 @@ impl Duration {
 }
 
 impl core::fmt::Display for Duration {
+    #[allow(clippy::assign_op_pattern)]
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         let mut duration = self.0.as_nanos();
         let unit = if duration == 0 {
@@ -33,7 +34,7 @@ impl core::fmt::Display for Duration {
                 if duration % d != 0 {
                     break;
                 }
-                duration /= d;
+                duration = duration / d;
                 unit = u.1;
             }
             unit
