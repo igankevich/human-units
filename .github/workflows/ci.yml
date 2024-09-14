@@ -28,5 +28,3 @@ jobs:
         run: cijail ./ci/lint.sh
       - name: Test
         run: cijail ./ci/test.sh
-      - name: Miri
-        run: cijail ./ci/miri.sh

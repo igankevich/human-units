@@ -38,8 +38,19 @@ test_coverage_postamble() {
         target/debug/lcov.info
 }
 
+test_miri() {
+    cargo +nightly miri setup --quiet
+    do_test_miri --quiet --no-run
+    do_test_miri
+}
+
+do_test_miri() {
+    env MIRIFLAGS=-Zmiri-disable-isolation cargo +nightly miri test --features serde "$@"
+}
+
 clean
 #test_coverage_preamble
 test_all --no-default-features --features serde
 test_all --no-default-features --features serde,no_std
 #test_coverage_postamble
+test_miri
