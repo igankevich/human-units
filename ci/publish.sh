@@ -7,7 +7,7 @@ install_token() {
 [repository]
 token = "$CRATES_IO_TOKEN"
 EOF
-    ln -sfn /dev/shm/credentials.toml ~/.cargo/credentials.toml
+    ln -sfn /dev/shm/credentials.toml "$CARGO_HOME"/credentials.toml
 }
 
 cargo_publish() {
