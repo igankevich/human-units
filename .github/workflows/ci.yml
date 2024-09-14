@@ -6,9 +6,6 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/igankevich/human-utils-ci:latest
-      credentials:
-        username: token
-        password: ${{ secrets.GHCR_TOKEN }}
       options: --cap-add SYS_PTRACE
     permissions:
       packages: write
