@@ -1,3 +1,5 @@
+# Introduction
+
 `human-units` is a library with `Size` and `Duration` types specifically designed to be used in configuration files and as command line arguments.
 These types serialize sizes and durations in _exact_ but human-readable form.
 
@@ -10,11 +12,12 @@ to print _approximate_ sizes and durations in a short human-readable form.
 - Supports [`no_std`](https://docs.rust-embedded.org/book/intro/no-std.html).
 - Tested with [Miri](https://github.com/rust-lang/miri).
 
+
 # Examples
 
 ## Exact human-readable size/duration
 
-```
+```rust
 use human_units::{Duration, Size};
 assert_eq!("1k", Size(1024).to_string());
 assert_eq!("1025", Size(1025).to_string());
@@ -24,7 +27,7 @@ assert_eq!("61s", Duration(core::time::Duration::from_secs(61)).to_string());
 
 ## Inexact short human-readable size/duration
 
-```
+```rust
 use core::time::Duration;
 use human_units::{FormatDuration, FormatSize};
 assert_eq!("1 KiB", 1024_u64.format_size().to_string());
@@ -33,7 +36,7 @@ assert_eq!("1 m", Duration::from_secs(60).format_duration().to_string());
 
 ## Custom output
 
-```
+```rust
 use colored::Colorize;
 use core::time::Duration;
 use human_units::{FormatDuration, FormattedDuration};
@@ -57,7 +60,7 @@ println!("{} ago", ColoredDuration(Duration::from_secs(60).format_duration()));
 
 ## Serde integration
 
-```
+```rust
 use human_units::Size;
 use serde::Serialize;
 
