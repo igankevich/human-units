@@ -34,7 +34,7 @@ impl Display for FormattedSize {
     }
 }
 
-const MAX_LEN: usize = 8;
+const MAX_LEN: usize = 10;
 const MAX_POWOF10: u64 = 1000;
 
 /**
@@ -86,6 +86,8 @@ const UNITS: [&str; 7] = ["B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"];
 #[cfg(all(test, not(feature = "no_std")))]
 mod tests {
     #![allow(clippy::panic)]
+    use arbitrary::Arbitrary;
+    use arbitrary::Unstructured;
     use arbtest::arbtest;
 
     use super::*;
@@ -114,7 +116,6 @@ mod tests {
         );
         assert_eq!("3.9 GiB", (u32::MAX as u64).format_size().to_string());
         assert_eq!("15.9 EiB", u64::MAX.format_size().to_string());
-        assert_eq!(MAX_LEN, u64::MAX.format_size().to_string().len());
     }
 
     #[test]
@@ -156,6 +157,37 @@ mod tests {
         });
     }
 
+    #[test]
+    fn test_formatted_size_io() {
+        arbtest(|u| {
+            let expected: FormattedSize = u.arbitrary()?;
+            let string = expected.to_string();
+            let mut words = string.splitn(2, ' ');
+            let number_str = words.next().unwrap();
+            let unit = words.next().unwrap().to_string();
+            let mut words = number_str.splitn(2, '.');
+            let integer: u16 = words.next().unwrap().parse().unwrap();
+            let fraction: u8 = match words.next() {
+                Some(word) => word.parse().unwrap(),
+                None => 0,
+            };
+            assert_eq!(expected.integer, integer);
+            assert_eq!(expected.fraction, fraction);
+            assert_eq!(expected.unit, unit, "expected = `{}`", expected);
+            Ok(())
+        });
+    }
+
+    impl<'a> Arbitrary<'a> for FormattedSize {
+        fn arbitrary(u: &mut Unstructured<'a>) -> Result<Self, arbitrary::Error> {
+            Ok(Self {
+                unit: *u.choose(&UNITS[..])?,
+                integer: u.int_in_range(0..=MAX_INTEGER)?,
+                fraction: u.int_in_range(0..=9)?,
+            })
+        }
+    }
+
     fn unit_to_factor(unit: &str) -> u64 {
         match unit {
             "B" => 1_u64,
@@ -168,4 +200,6 @@ mod tests {
             _ => panic!("unknown unit `{}`", unit),
         }
     }
+
+    const MAX_INTEGER: u16 = 1023;
 }
