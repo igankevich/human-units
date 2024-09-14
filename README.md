@@ -1,8 +1,13 @@
-# Introduction
+# human-units
 
 [![Crates.io Version](https://img.shields.io/crates/v/human-units)](https://crates.io/crates/human-units)
 [![Docs](https://docs.rs/human-units/badge.svg)](https://docs.rs/human-units)
 [![dependency status](https://deps.rs/repo/github/igankevich/human-units/status.svg)](https://deps.rs/repo/github/igankevich/human-units)
+
+Size and duration serialization library designed for configuration files and command line arguments.
+
+
+## Introduction
 
 `human-units` is a library with `Size` and `Duration` types specifically designed to be used in configuration files and as command line arguments.
 These types serialize sizes and durations in _exact_ but human-readable form.
@@ -18,9 +23,9 @@ to print _approximate_ sizes and durations in a short human-readable form.
 - **72–85%** faster than similar libraries (see benchmarks below).
 
 
-# Examples
+## Examples
 
-## Exact human-readable size/duration
+### Exact human-readable size/duration
 
 ```rust
 use human_units::{Duration, Size};
@@ -30,7 +35,7 @@ assert_eq!("1m", Duration(core::time::Duration::from_secs(60)).to_string());
 assert_eq!("61s", Duration(core::time::Duration::from_secs(61)).to_string());
 ```
 
-## Inexact short human-readable size/duration
+### Inexact short human-readable size/duration
 
 ```rust
 use core::time::Duration;
@@ -39,7 +44,7 @@ assert_eq!("1 KiB", 1024_u64.format_size().to_string());
 assert_eq!("1 m", Duration::from_secs(60).format_duration().to_string());
 ```
 
-## Custom output
+### Custom output
 
 ```rust
 use colored::Colorize;
@@ -63,7 +68,7 @@ impl core::fmt::Display for ColoredDuration {
 println!("{} ago", ColoredDuration(Duration::from_secs(60).format_duration()));
 ```
 
-## Serde integration
+### Serde integration
 
 ```rust
 use human_units::Size;
@@ -78,11 +83,11 @@ let object = SizeWrapper{ size: Size(1024) };
 assert_eq!(r#"{"size":"1k"}"#, serde_json::to_string(&object).unwrap());
 ```
 
-# Benchmarks
+## Benchmarks
 
 Benchmarks were done with Rust 1.80.1 on a x86\_64 laptop.
 
-## Format size
+### Format size
 
 | Library | Version | Features | Benchmark | Time |
 |---------|---------|----------|-----------|------|
@@ -90,7 +95,7 @@ Benchmarks were done with Rust 1.80.1 on a x86\_64 laptop.
 | `human-repr`  | 1.1.0 | `1024,space` | `format_size_then_to_string` | 161.38 ns ± 13.29 ns|
 | `human-units` | 0.1.3 |              | `format_size_then_to_string` | **24.24 ns ± 1.23 ns** |
 
-## Format duration
+### Format duration
 
 | Library | Version | Features | Benchmark | Time |
 |---------|---------|----------|-----------|------|

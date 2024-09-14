@@ -1,15 +1,17 @@
 [package]
 name = "human-units"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 license = "MIT"
 homepage = "https://github.com/igankevich/human-units"
 repository = "https://github.com/igankevich/human-units"
+documentation = "https://docs.rs/human-units"
 readme = "README.md"
 description = "Size and duration serialization library designed for configuration files and command line arguments"
 keywords = ["format", "duration", "bytes", "configuration", "serialization"]
 categories = ["encoding", "value-formatting", "config", "data-structures"]
 include = ["**/*.rs", "Cargo.toml", "README.md", "LICENSE"]
+rust-version = "1.60.0"
 
 [package.metadata.docs.rs]
 features = ["serde"]
