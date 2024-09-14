@@ -1,10 +1,21 @@
 use core::fmt::Display;
 use core::fmt::Formatter;
 
+use crate::Size;
+
+/**
+Formatted duration that includes unit, integral and fractional parts as fields.
+
+This type is useful when you need custom formatting of the output,
+i.e. colors, locale-specific units etc.
+*/
 pub struct FormattedSize {
+    /// Size unit.
     pub unit: &'static str,
-    pub integer: u16, // max. value 1023
-    pub fraction: u8, // max. value 9
+    /// Integral part. Max. value is 1023.
+    pub integer: u16,
+    /// Fractional part. Max. value is 9.
+    pub fraction: u8,
 }
 
 impl Display for FormattedSize {
@@ -17,7 +28,12 @@ impl Display for FormattedSize {
     }
 }
 
+/**
+This trait adds [`format_size`](FormatSize::format_size) method
+to primitive [`u64`](core::u64) and [`usize`](core::u64) types.
+*/
 pub trait FormatSize {
+    /// Splits the original size into integral, fractional and unit parts.
     fn format_size(self) -> FormattedSize;
 }
 
@@ -50,10 +66,17 @@ impl FormatSize for usize {
     }
 }
 
+impl FormatSize for Size {
+    fn format_size(self) -> FormattedSize {
+        FormatSize::format_size(self.0)
+    }
+}
+
 const UNITS: [&str; 7] = ["B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"];
 
 #[cfg(all(test, not(feature = "no_std")))]
 mod tests {
+    #![allow(clippy::panic)]
     use arbtest::arbtest;
 
     use crate::FormatSize;

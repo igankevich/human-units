@@ -1,14 +1,23 @@
+use core::num::NonZeroU128;
+use core::num::NonZeroU16;
 use core::ops::Deref;
 use core::ops::DerefMut;
 use core::str::FromStr;
 use core::time::Duration as StdDuration;
 
+/**
+Exact duration.
+
+The intended use is the configuration files where exact values are required,
+i.e. timeouts, cache max age, time-to-live etc.
+*/
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(all(test, not(feature = "no_std")), derive(arbitrary::Arbitrary))]
 #[repr(transparent)]
 pub struct Duration(pub StdDuration);
 
 impl Duration {
+    /// Max. length of the duration in string form.
     pub const MAX_STRING_LEN: usize = 31;
 }
 
@@ -19,11 +28,12 @@ impl core::fmt::Display for Duration {
             "s"
         } else {
             let mut unit = "ns";
-            for u in &UNITS {
-                if duration % u.0 as u128 != 0 {
+            for u in UNITS {
+                let d: NonZeroU128 = u.0.into();
+                if duration % d != 0 {
                     break;
                 }
-                duration /= u.0 as u128;
+                duration /= d;
                 unit = u.1;
             }
             unit
@@ -91,22 +101,25 @@ fn unit_to_factor(unit: &str) -> Result<u64, DurationError> {
     }
 }
 
+/// Duration parsing error.
 #[derive(Debug)]
 pub struct DurationError;
 
-const UNITS: [(u16, &str); 6] = [
-    (1000, "μs"),
-    (1000, "ms"),
-    (1000, "s"),
-    (60, "m"),
-    (60, "h"),
-    (24, "d"),
+const UNITS: [(NonZeroU16, &str); 6] = [
+    (unsafe { NonZeroU16::new_unchecked(1000) }, "μs"),
+    (unsafe { NonZeroU16::new_unchecked(1000) }, "ms"),
+    (unsafe { NonZeroU16::new_unchecked(1000) }, "s"),
+    (unsafe { NonZeroU16::new_unchecked(60) }, "m"),
+    (unsafe { NonZeroU16::new_unchecked(60) }, "h"),
+    (unsafe { NonZeroU16::new_unchecked(24) }, "d"),
 ];
 
 const NANOS_PER_SEC: u32 = 1_000_000_000_u32;
 
 #[cfg(all(test, not(feature = "no_std")))]
 mod tests {
+
+    use std::ops::AddAssign;
 
     use arbtest::arbtest;
 
@@ -130,11 +143,44 @@ mod tests {
 
     #[test]
     fn test_duration_parse() {
+        assert_eq!(Duration(StdDuration::from_secs(1)), "1".parse().unwrap());
         assert_eq!(
             Duration(StdDuration::from_nanos(1000)),
             "1μs".parse().unwrap()
         );
         assert_eq!(Duration(StdDuration::from_secs(120)), "2m".parse().unwrap());
+        assert_eq!(
+            "Err(DurationError)",
+            format!("{:?}", "2km".parse::<Duration>())
+        );
+        assert_eq!(
+            "Err(DurationError)",
+            format!("{:?}", "ms".parse::<Duration>())
+        );
+        assert_eq!(
+            "Err(DurationError)",
+            format!("{:?}", format!("{}0", u128::MAX).parse::<Duration>())
+        );
+    }
+
+    #[test]
+    fn test_deref() {
+        assert_eq!(
+            StdDuration::from_secs(1),
+            *Duration(StdDuration::from_secs(1)),
+        );
+        let mut tmp = Duration(StdDuration::from_secs(1));
+        tmp.add_assign(StdDuration::from_secs(1));
+        assert_eq!(StdDuration::from_secs(2), *tmp);
+    }
+
+    #[test]
+    fn test_from_into() {
+        let d1 = Duration(StdDuration::from_secs(1));
+        let d2: StdDuration = d1.into();
+        let d3: Duration = d2.into();
+        assert_eq!(d1, d3);
+        assert_eq!(d1.0, d2);
     }
 
     #[test]
