@@ -21,6 +21,7 @@ to print _approximate_ sizes and durations in a short human-readable form.
 - Supports [`no_std`](https://docs.rust-embedded.org/book/intro/no-std.html).
 - Tested with [Miri](https://github.com/rust-lang/miri).
 - **72–85%** faster than similar libraries (see benchmarks below).
+- **50–87%** less binary size compared to similar libraries (see benchmarks below).
 
 
 ## Examples
@@ -83,7 +84,7 @@ let object = SizeWrapper{ size: Size(1024) };
 assert_eq!(r#"{"size":"1k"}"#, serde_json::to_string(&object).unwrap());
 ```
 
-## Benchmarks
+## Performance benchmarks
 
 Benchmarks were done with Rust 1.80.1 on a x86\_64 laptop.
 
@@ -101,3 +102,23 @@ Benchmarks were done with Rust 1.80.1 on a x86\_64 laptop.
 |---------|---------|----------|-----------|------|
 | `human-repr`  | 1.1.0 | `1024,space` | `format_duration_then_to_string` | 229.47 ns ± 11.90 ns|
 | `human-units` | 0.1.3 |              | `format_duration_then_to_string` | **41.55 ns ± 2.77 ns** |
+
+
+## Executable size benchmarks
+
+Benchmarks were done with Rust 1.80.1 on a x86\_64 laptop.
+
+### Format size
+
+| Library | Version | Features | Benchmark | Executable size, B |
+|---------|---------|----------|-----------|--------------------|
+| `human_bytes` | 0.4.3 | `fast`       | print formatted size | 8192  |
+| `human-repr`  | 1.1.0 | `1024,space` | print formatted size | 28672 |
+| `human-units` | 0.1.3 |              | print formatted size | 4096  |
+
+### Format duration
+
+| Library | Version | Features | Benchmark | Executable size, B |
+|---------|---------|----------|-----------|--------------------|
+| `human-repr`  | 1.1.0 | `1024,space` | print formatted duration | 28672 |
+| `human-units` | 0.1.3 |              | print formatted duration | 4096  |

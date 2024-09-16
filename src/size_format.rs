@@ -6,7 +6,7 @@ use crate::Buffer;
 use crate::Size;
 
 /**
-Formatted duration that includes unit, integral and fractional parts as fields.
+Approximate size that includes unit, integral and fractional parts as fields.
 
 This type is useful when you need custom formatting of the output,
 i.e. colors, locale-specific units etc.

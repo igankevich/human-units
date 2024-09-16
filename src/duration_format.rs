@@ -6,7 +6,7 @@ use crate::Buffer;
 use crate::Duration;
 
 /**
-Formatted duration that includes unit, integral and fractional parts as fields.
+Approximate duration that includes unit, integral and fractional parts as fields.
 
 This type is useful when you need custom formatting of the output,
 i.e. colors, locale-specific units etc.
@@ -19,8 +19,6 @@ pub struct FormattedDuration {
     /// Fractional part. Max. value is 9.
     pub fraction: u8,
 }
-
-// TODO test FormattedDuration
 
 impl Display for FormattedDuration {
     fn fmt(&self, f: &mut Formatter) -> core::fmt::Result {
