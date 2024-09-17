@@ -17,7 +17,8 @@ to print _approximate_ sizes and durations in a short human-readable form.
 
 - No floating point operations.
 - No dependencies by default.
-- Supports [Serde](https://serde.rs/).
+- Supports [serde](https://docs.rs/serde/latest/serde/).
+- Supports [clap](https://docs.rs/clap/latest/clap/).
 - Supports [`no_std`](https://docs.rust-embedded.org/book/intro/no-std.html).
 - Tested with [Miri](https://github.com/rust-lang/miri).
 - **72–85%** faster than similar libraries (see benchmarks below).
@@ -81,7 +82,26 @@ struct SizeWrapper {
 }
 
 let object = SizeWrapper{ size: Size(1024) };
-assert_eq!(r#"{"size":"1k"}"#, serde_json::to_string(&object).unwrap());
+assert_eq!(r#"size = "1k""#, toml::to_string(&object).unwrap().trim());
+```
+
+### Clap integration
+
+```rust
+use clap::Parser;
+use human_units::{Duration, Size};
+
+#[derive(Parser, Debug)]
+struct Args {
+    #[arg(long, value_parser=clap::value_parser!(Duration))]
+    timeout: Duration,
+    #[arg(long, value_parser=clap::value_parser!(Size))]
+    size: Size,
+}
+
+let args = Args::parse_from(["test-clap", "--timeout", "1m", "--size", "1g"]);
+assert_eq!(args.timeout, Duration(core::time::Duration::from_secs(60)));
+assert_eq!(args.size, Size(1024_u64.pow(3)));
 ```
 
 ## Performance benchmarks

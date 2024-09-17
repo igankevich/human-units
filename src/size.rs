@@ -1,3 +1,5 @@
+use core::fmt::Debug;
+use core::fmt::Display;
 use core::num::NonZeroU16;
 use core::num::NonZeroU64;
 use core::ops::Deref;
@@ -20,7 +22,7 @@ impl Size {
     pub const MAX_STRING_LEN: usize = 20;
 }
 
-impl core::fmt::Display for Size {
+impl Display for Size {
     #[allow(clippy::assign_op_pattern)]
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         let mut size = self.0;
@@ -92,6 +94,15 @@ impl DerefMut for Size {
 #[derive(Debug)]
 pub struct SizeError;
 
+impl Display for SizeError {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        Debug::fmt(self, f)
+    }
+}
+
+#[cfg(not(feature = "no_std"))]
+impl std::error::Error for SizeError {}
+
 const fn unit_to_factor(unit: u8) -> Result<u64, SizeError> {
     match unit {
         b'k' | b'K' => Ok(1024_u64),
@@ -112,8 +123,9 @@ const UNITS: [(NonZeroU16, &str); 4] = [
 #[cfg(all(test, not(feature = "no_std")))]
 mod tests {
 
-    use arbtest::arbtest;
     use std::ops::AddAssign;
+
+    use arbtest::arbtest;
 
     use super::*;
 
