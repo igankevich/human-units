@@ -1,6 +1,6 @@
 [package]
 name = "human-units"
-version = "0.1.6"
+version = "0.2.0"
 edition = "2021"
 license = "MIT"
 homepage = "https://github.com/igankevich/human-units"
@@ -34,6 +34,7 @@ toml = "0.8.19"
 serde = { version = "1.0.210", features = ["derive"] }
 human_bytes = { version = "0.4.3", features = ["fast"] }
 human-repr = { version = "1.1.0", features = ["1024", "space"] }
+clap = { version = "4.5.17", features = ["derive"] }
 
 [lints.clippy]
 unwrap_used = "deny"

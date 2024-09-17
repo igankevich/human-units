@@ -1,3 +1,5 @@
+use core::fmt::Debug;
+use core::fmt::Display;
 use core::num::NonZeroU128;
 use core::num::NonZeroU16;
 use core::ops::Deref;
@@ -21,7 +23,7 @@ impl Duration {
     pub const MAX_STRING_LEN: usize = 31;
 }
 
-impl core::fmt::Display for Duration {
+impl Display for Duration {
     #[allow(clippy::assign_op_pattern)]
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         let mut duration = self.0.as_nanos();
@@ -105,6 +107,15 @@ fn unit_to_factor(unit: &str) -> Result<u64, DurationError> {
 /// Duration parsing error.
 #[derive(Debug)]
 pub struct DurationError;
+
+impl Display for DurationError {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        Debug::fmt(self, f)
+    }
+}
+
+#[cfg(not(feature = "no_std"))]
+impl std::error::Error for DurationError {}
 
 const UNITS: [(NonZeroU16, &str); 6] = [
     (unsafe { NonZeroU16::new_unchecked(1000) }, "μs"),
