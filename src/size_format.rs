@@ -39,7 +39,7 @@ const MAX_POWOF10: u64 = 1000;
 
 /**
 This trait adds [`format_size`](FormatSize::format_size) method
-to primitive [`u64`](core::u64) and [`usize`](core::u64) types.
+to primitive [`u64`](core::u64) and [`usize`](core::usize) types.
 */
 pub trait FormatSize {
     /// Splits the original size into integral, fractional and adds a unit.

@@ -23,7 +23,6 @@ impl Size {
 }
 
 impl Display for Size {
-    #[allow(clippy::assign_op_pattern)]
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         let mut size = self.0;
         let unit = if size == 0 {
@@ -35,7 +34,7 @@ impl Display for Size {
                 if size % d != 0 {
                     break;
                 }
-                size = size / d;
+                size /= d;
                 unit = u.1;
             }
             unit

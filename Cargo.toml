@@ -17,9 +17,10 @@ rust-version = "1.60.0"
 features = ["serde"]
 
 [features]
-default = []
+default = ["unicode"]
 serde = ["dep:serde"]
 no_std = []
+unicode = []
 
 [dependencies]
 serde = { version = "1.0.210", features = ["derive"], optional = true }

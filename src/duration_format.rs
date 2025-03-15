@@ -89,7 +89,7 @@ impl FormatDuration for core::time::Duration {
             let mut b = seconds % scale;
             if b != 0 {
                 // compute the first digit of the fractional part
-                b = b * 10_u64 / scale;
+                b = (b * 10_u64) / scale;
             }
             FormattedDuration {
                 unit: UNITS[i].1,
