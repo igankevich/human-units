@@ -4,16 +4,16 @@
 [![Docs](https://docs.rs/human-units/badge.svg)](https://docs.rs/human-units)
 [![dependency status](https://deps.rs/repo/github/igankevich/human-units/status.svg)](https://deps.rs/repo/github/igankevich/human-units)
 
-Size and duration serialization and formatting library designed for configuration files and command line arguments.
+Size, duration and other SI units serialization and formatting library designed for configuration files and command line arguments.
 
 
 ## Introduction
 
-`human-units` is a library with `Size` and `Duration` types specifically designed to be used in configuration files and as command line arguments.
+`human-units` is a library with `Size`, `Duration` and other SI-related types specifically designed to be used in configuration files and as command line arguments.
 These types serialize sizes and durations in _exact_ but human-readable form.
 
-The library also provides `FormatSize` and `FormatDuration` traits
-to print _approximate_ sizes and durations in a short human-readable form.
+The library also provides `FormatSize`, `FormatDuration`, `FormatSi` traits
+to print _approximate_ values in a short human-readable form.
 
 - No floating point operations.
 - No dependencies by default.
