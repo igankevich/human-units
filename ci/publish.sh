@@ -3,7 +3,8 @@
 . ./ci/preamble.sh
 
 cargo_publish() {
-    cargo publish --all-features --quiet
+    cargo publish --package human-units-derive --features serde --quiet
+    cargo publish --package human-units --features serde,si-units,derive,std --quiet
 }
 
 if test "$GITHUB_ACTIONS" = "true" && test "$GITHUB_REF_TYPE" != "tag"; then
