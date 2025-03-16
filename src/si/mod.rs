@@ -4,9 +4,13 @@
 //!
 //! # Caveats
 //!
-//! - [`Time`] uses uncommon units such as *kilseconds*.
-//!   To use more common _minutes_, _hours_ and _days_ there is [`Duration`](crate::Duration).
-//! - [`Mass`] uses *megagrams* instead of *tonnes*.
+#![cfg_attr(
+    feature = "si-units",
+    doc = r##"
+ - [`Time`] uses uncommon units such as *kilseconds*.
+   To use more common _minutes_, _hours_ and _days_ there is [`Duration`](crate::Duration).
+ - [`Mass`] uses *megagrams* instead of *tonnes*."##
+)]
 //! - Some units's symbols as well as _micro_ prefix use Unicode characters.
 //!   Turn off `unicode` feature to replace them with alternative ASCII-only representation.
 

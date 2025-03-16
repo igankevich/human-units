@@ -104,6 +104,28 @@ assert_eq!(args.timeout, Duration(core::time::Duration::from_secs(60)));
 assert_eq!(args.size, Size(1024_u64.pow(3)));
 ```
 
+
+### SI units
+
+```rust
+use human_units::si::{FormatSi, Frequency};
+
+// Convert from hertz, internal representation is nHz (nanohertz).
+let cpu_freq = Frequency::from_si(2200_000_000);
+assert_eq!("2200 MHz", cpu_freq.to_string());
+assert_eq!("2.2 GHz", cpu_freq.format_si().to_string());
+```
+
+
+### Custom units
+
+```rust
+use human_units::si::si_unit;
+
+#[si_unit(symbol = "feet")]
+struct Length(pub u64);
+```
+
 ## Performance benchmarks
 
 Benchmarks were done with Rust 1.80.1 on a x86\_64 laptop.

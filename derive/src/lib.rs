@@ -158,6 +158,11 @@ pub fn si_unit(args: TokenStream, item: TokenStream) -> TokenStream {
 
             /// Unit symbol.
             pub const SYMBOL: &str = #symbol;
+
+            /// Convert from a value without SI prefix.
+            pub fn from_si(value: #uint) -> Self {
+                Self(value * 1_000_000_000)
+            }
         }
 
         impl #crate_name::si::FormatSi for #newtype {
