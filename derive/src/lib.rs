@@ -157,7 +157,7 @@ pub fn si_unit(args: TokenStream, item: TokenStream) -> TokenStream {
             pub const MAX_STRING_LEN: usize = #max_string_len;
 
             /// Unit symbol.
-            pub const SYMBOL: &str = #symbol;
+            pub const SYMBOL: &'static str = #symbol;
 
             /// Convert from a value without SI prefix.
             pub fn from_si(value: #uint) -> Self {
