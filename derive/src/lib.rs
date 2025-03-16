@@ -166,7 +166,7 @@ pub fn si_unit(args: TokenStream, item: TokenStream) -> TokenStream {
         }
 
         impl #crate_name::si::FormatSi for #newtype {
-            fn format_si(&self) -> #crate_name::si::FormattedUnit<'static, 'static> {
+            fn format_si(&self) -> #crate_name::si::FormattedUnit<'static> {
                 #crate_name::si::FormatSiUnit::format_si_unit(self.0, #symbol)
             }
         }

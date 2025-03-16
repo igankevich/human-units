@@ -7,7 +7,7 @@ pub trait FormatSi {
     /// Represent the value as a number using the largest possible unit prefix.
     ///
     /// The number has integer part in the range `1..=999` and fractional part in the range `0..=9`.
-    fn format_si(&self) -> FormattedUnit<'static, 'static>;
+    fn format_si(&self) -> FormattedUnit<'static>;
 }
 
 /// Format the value as a number using the largest possible SI prefix.
@@ -15,7 +15,7 @@ pub trait FormatSiUnit {
     /// Represent the value as a number using the largest possible unit prefix.
     ///
     /// The number has integer part in the range `1..=999` and fractional part in the range `0..=9`.
-    fn format_si_unit(self, symbol: &str) -> FormattedUnit;
+    fn format_si_unit(self, symbol: &str) -> FormattedUnit<'_>;
 }
 
 impl_format_si_unit!(u128, format_unit_u128);
@@ -24,16 +24,16 @@ impl_format_si_unit!(u32, format_unit_u32);
 impl_format_si_unit!(u16, format_unit_u16);
 
 /// An approximate value that consists of integral and fraction parts, prefix and symbol.
-pub struct FormattedUnit<'prefix, 'symbol> {
-    pub(crate) prefix: &'prefix str,
+pub struct FormattedUnit<'symbol> {
+    pub(crate) prefix: &'static str,
     pub(crate) symbol: &'symbol str,
     pub(crate) integer: u16,
     pub(crate) fraction: u8,
 }
 
-impl<'prefix, 'symbol> FormattedUnit<'prefix, 'symbol> {
+impl<'symbol> FormattedUnit<'symbol> {
     /// Unit prefix.
-    pub fn prefix(&self) -> &'prefix str {
+    pub fn prefix(&self) -> &'static str {
         self.prefix
     }
 
@@ -53,7 +53,7 @@ impl<'prefix, 'symbol> FormattedUnit<'prefix, 'symbol> {
     }
 }
 
-impl core::fmt::Display for FormattedUnit<'_, '_> {
+impl core::fmt::Display for FormattedUnit<'_> {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         let mut buf = Buffer::<MAX_LEN>::new();
         buf.write_u16(self.integer, MAX_POWOF10);
@@ -71,7 +71,7 @@ impl core::fmt::Display for FormattedUnit<'_, '_> {
 macro_rules! impl_format_si_unit {
     ($uint: ident, $format: ident) => {
         impl FormatSiUnit for $uint {
-            fn format_si_unit(self, symbol: &str) -> FormattedUnit {
+            fn format_si_unit(self, symbol: &str) -> FormattedUnit<'_> {
                 let (integer, fraction, i) = crate::si::$format(self);
                 FormattedUnit {
                     integer,
@@ -125,7 +125,7 @@ mod tests {
         });
     }
 
-    impl<'a> Arbitrary<'a> for FormattedUnit<'static, 'static> {
+    impl<'a> Arbitrary<'a> for FormattedUnit<'static> {
         fn arbitrary(u: &mut Unstructured<'a>) -> Result<Self, arbitrary::Error> {
             Ok(Self {
                 prefix: *u.choose(&PREFIXES[..])?,
