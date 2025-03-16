@@ -106,9 +106,10 @@ impl FormatDuration for Duration {
     }
 }
 
-#[cfg(all(test, not(feature = "no_std")))]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     #![allow(clippy::panic)]
+
     use core::time::Duration;
 
     use arbitrary::Arbitrary;

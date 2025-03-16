@@ -50,7 +50,7 @@ do_test_miri() {
 
 clean
 #test_coverage_preamble
+test_all --no-default-features --features serde,std
 test_all --no-default-features --features serde
-test_all --no-default-features --features serde,no_std
 #test_coverage_postamble
 test_miri

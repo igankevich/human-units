@@ -6,12 +6,14 @@ use syn::punctuated::Punctuated;
 use syn::Data;
 use syn::DeriveInput;
 use syn::Expr;
-use syn::ExprLit;
 use syn::Fields;
 use syn::Ident;
 use syn::Lit;
 use syn::LitInt;
 use syn::Meta;
+use syn::Path;
+use syn::PathArguments;
+use syn::PathSegment;
 use syn::Type;
 
 #[proc_macro_attribute]
@@ -43,39 +45,6 @@ pub fn si_unit(args: TokenStream, item: TokenStream) -> TokenStream {
             _ => None,
         })
         .expect("`si_unit` should at least contain `symbol = \"...\"` attribute");
-    let mut unit_prefix = args
-        .iter()
-        .find_map(|meta| match meta {
-            Meta::NameValue(nv) => {
-                let path = nv.path.get_ident()?;
-                if path != "prefix" {
-                    return None;
-                }
-                match &nv.value {
-                    Expr::Lit(ExprLit {
-                        lit: Lit::Str(prefix),
-                        ..
-                    }) => Some(prefix.value()),
-                    _ => panic!("`si_unit(prefix = \"...\")` should be a string literal"),
-                }
-            }
-            _ => None,
-        })
-        .map(|prefix| {
-            if prefix.is_empty() {
-                "none".into()
-            } else {
-                prefix.to_lowercase()
-            }
-        })
-        .unwrap_or_else(|| "nano".into());
-    if !PREFIXES.contains(&unit_prefix.as_str()) {
-        panic!("`si_unit`: Invalid unit prefix {unit_prefix:?}, valid prefixes {PREFIXES:?}");
-    }
-    if let Some(first_letter) = unit_prefix.get_mut(0..1) {
-        first_letter.make_ascii_uppercase();
-    }
-    let unit_prefix = Ident::new(&unit_prefix, Span::call_site().into());
     let internal = args.iter().any(|meta| match meta {
         Meta::Path(path) => {
             let Some(path) = path.get_ident() else {
@@ -108,19 +77,38 @@ pub fn si_unit(args: TokenStream, item: TokenStream) -> TokenStream {
         panic!("`si_unit`: the struct field should be a primitive unsigned integer, supported types: {:?}", UINT_TYPES);
     }
     let uint_string_len = max_string_len(uint.to_string().as_str());
-    let min_prefix_len = if unit_prefix == "Micro" { 2 } else { 1 };
+    let min_prefix_len = 1;
     let max_string_len = uint_string_len + 1 + min_prefix_len + symbol.len();
-    let serde_module = Ident::new(&format!("{}_human_units_serde", newtype), newtype.span());
+    let serde_visitor = Ident::new(
+        &format!("{}HumanUnitsSerdeVisitor", newtype),
+        newtype.span(),
+    );
     let crate_name = if internal {
-        Ident::new("crate", Span::call_site().into())
+        let mut segments = Punctuated::new();
+        segments.push_value(PathSegment {
+            ident: Ident::new("crate", Span::call_site().into()),
+            arguments: PathArguments::None,
+        });
+        Path {
+            leading_colon: None,
+            segments,
+        }
     } else {
-        // TODO colons
-        Ident::new("human_units", Span::call_site().into())
+        let mut segments = Punctuated::new();
+        segments.push_value(PathSegment {
+            ident: Ident::new("human_units", Span::call_site().into()),
+            arguments: PathArguments::None,
+        });
+        Path {
+            leading_colon: Some(Default::default()),
+            segments,
+        }
     };
     let uint_max_pow10 = LitInt::new(
         max_power_of_10(uint.to_string().as_str()),
         Span::call_site().into(),
     );
+    let write_unit = Ident::new(&format!("write_unit_{}", uint), Span::call_site().into());
     let serde = cfg!(feature = "serde").then_some(quote! {
         impl serde::Serialize for #newtype {
             fn serialize<S>(&self, s: S) -> core::result::Result<S::Ok, S::Error>
@@ -128,7 +116,7 @@ pub fn si_unit(args: TokenStream, item: TokenStream) -> TokenStream {
                 S: serde::Serializer,
             {
                 let mut buf = #crate_name::Buffer::<{ #newtype::MAX_STRING_LEN }>::new();
-                self.write(&mut buf);
+                buf.#write_unit(self.0, #uint_max_pow10, #symbol);
                 s.serialize_str(unsafe { buf.as_str() })
             }
         }
@@ -138,35 +126,26 @@ pub fn si_unit(args: TokenStream, item: TokenStream) -> TokenStream {
             where
                 D: serde::Deserializer<'a>,
             {
-                d.deserialize_str(#serde_module::Visitor)
+                d.deserialize_str(#serde_visitor)
             }
         }
 
-        #[allow(non_snake_case)]
-        mod #serde_module {
-            use super::*;
+        struct #serde_visitor;
 
-            pub struct Visitor;
+        impl<'a> serde::de::Visitor<'a> for #serde_visitor {
+            type Value = #newtype;
 
-            impl<'a> serde::de::Visitor<'a> for Visitor {
-                type Value = #newtype;
+            fn expecting(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+                f.write_str(concat!("A string obtained by `", stringify!(#newtype), "::to_string`"))
+            }
 
-                fn expecting(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-                    f.write_str(concat!(
-                            "A string obtained by `",
-                            stringify!(#newtype),
-                            "::to_string`"
-                    ))
-                }
-
-                fn visit_str<E>(self, value: &str) -> core::result::Result<Self::Value, E>
-                where
-                    E: serde::de::Error,
-                {
-                    value
-                        .parse()
-                        .map_err(|_| E::custom(concat!("Invalid `", stringify!(#newtype), "`")))
-                }
+            fn visit_str<E>(self, value: &str) -> core::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                value
+                    .parse()
+                    .map_err(|_| E::custom(concat!("Invalid `", stringify!(#newtype), "`")))
             }
         }
     });
@@ -179,32 +158,18 @@ pub fn si_unit(args: TokenStream, item: TokenStream) -> TokenStream {
 
             /// Unit symbol.
             pub const SYMBOL: &str = #symbol;
-
-            fn write(&self, buf: &mut #crate_name::Buffer<{ Self::MAX_STRING_LEN }>) {
-                let (value, prefix) = #crate_name::si::unitify(self.0);
-                buf.write_u64(value, #uint_max_pow10);
-                buf.write_byte(b' ');
-                buf.write_str_infallible(#crate_name::si::PREFIXES[prefix]);
-                buf.write_str_infallible(#symbol);
-            }
         }
 
         impl #crate_name::si::FormatSi for #newtype {
             fn format_si(&self) -> #crate_name::si::FormattedUnit<'static, 'static> {
-                let (integer, fraction, i) = #crate_name::si::format_u64(self.0);
-                #crate_name::si::FormattedUnit {
-                    integer,
-                    fraction,
-                    prefix: #crate_name::si::PREFIXES[#crate_name::si::Prefix::#unit_prefix as usize + i],
-                    symbol: #symbol,
-                }
+                #crate_name::si::FormatSiUnit::format_si_unit(self.0, #symbol)
             }
         }
 
         impl core::fmt::Display for #newtype {
             fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
                 let mut buf = #crate_name::Buffer::<{ Self::MAX_STRING_LEN }>::new();
-                self.write(&mut buf);
+                buf.#write_unit(self.0, #uint_max_pow10, #symbol);
                 f.write_str(unsafe { buf.as_str() })
             }
         }
@@ -212,7 +177,7 @@ pub fn si_unit(args: TokenStream, item: TokenStream) -> TokenStream {
         impl core::str::FromStr for #newtype {
             type Err = #crate_name::si::Error;
             fn from_str(other: &str) -> Result<Self, Self::Err> {
-                #crate_name::si::from_str(other, Self::SYMBOL).map(#newtype)
+                #crate_name::si::SiFromStr::si_unit_from_str(other, Self::SYMBOL).map(#newtype)
             }
         }
 
@@ -251,10 +216,6 @@ fn max_power_of_10(ty: &str) -> &'static str {
 }
 
 const UINT_TYPES: [&str; 5] = ["u128", "u64", "u32", "u16", "u8"];
-const PREFIXES: [&str; 21] = [
-    "quecto", "ronto", "yocto", "zepto", "atto", "femto", "pico", "nano", "micro", "milli", "none",
-    "kilo", "mega", "giga", "tera", "peta", "exa", "zetta", "yotta", "ronna", "quetta",
-];
 
 #[cfg(test)]
 mod tests {

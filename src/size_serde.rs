@@ -41,7 +41,7 @@ impl<'a> serde::de::Visitor<'a> for SizeVisitor {
     }
 }
 
-#[cfg(all(test, not(feature = "no_std")))]
+#[cfg(all(test, feature = "std"))]
 mod tests {
 
     use arbtest::arbtest;

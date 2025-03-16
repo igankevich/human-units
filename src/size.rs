@@ -13,7 +13,7 @@ The intended use is the configuration files where exact numbers are required,
 i.e. cache size, maximum HTTP body size etc.
 */
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
-#[cfg_attr(all(test, not(feature = "no_std")), derive(arbitrary::Arbitrary))]
+#[cfg_attr(all(test, feature = "std"), derive(arbitrary::Arbitrary))]
 #[repr(transparent)]
 pub struct Size(pub u64);
 
@@ -99,7 +99,7 @@ impl Display for SizeError {
     }
 }
 
-#[cfg(not(feature = "no_std"))]
+#[cfg(feature = "std")]
 impl std::error::Error for SizeError {}
 
 const fn unit_to_factor(unit: u8) -> Result<u64, SizeError> {
@@ -119,7 +119,7 @@ const UNITS: [(NonZeroU16, &str); 4] = [
     (unsafe { NonZeroU16::new_unchecked(1024) }, "t"),
 ];
 
-#[cfg(all(test, not(feature = "no_std")))]
+#[cfg(all(test, feature = "std"))]
 mod tests {
 
     use std::ops::AddAssign;

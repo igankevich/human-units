@@ -14,7 +14,7 @@ The intended use is the configuration files where exact values are required,
 i.e. timeouts, cache max age, time-to-live etc.
 */
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
-#[cfg_attr(all(test, not(feature = "no_std")), derive(arbitrary::Arbitrary))]
+#[cfg_attr(all(test, feature = "std"), derive(arbitrary::Arbitrary))]
 #[repr(transparent)]
 pub struct Duration(pub StdDuration);
 
@@ -114,7 +114,7 @@ impl Display for DurationError {
     }
 }
 
-#[cfg(not(feature = "no_std"))]
+#[cfg(feature = "std")]
 impl std::error::Error for DurationError {}
 
 const UNITS: [(NonZeroU16, &str); 6] = [
@@ -128,7 +128,7 @@ const UNITS: [(NonZeroU16, &str); 6] = [
 
 const NANOS_PER_SEC: u32 = 1_000_000_000_u32;
 
-#[cfg(all(test, not(feature = "no_std")))]
+#[cfg(all(test, feature = "std"))]
 mod tests {
 
     use std::ops::AddAssign;

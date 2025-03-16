@@ -83,7 +83,7 @@ impl FormatSize for Size {
 
 const UNITS: [&str; 7] = ["B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"];
 
-#[cfg(all(test, not(feature = "no_std")))]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     #![allow(clippy::panic)]
     use arbitrary::Arbitrary;

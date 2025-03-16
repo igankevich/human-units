@@ -88,23 +88,20 @@ assert_eq!(r#"size = "1k""#, toml::to_string(&object).unwrap().trim());
 ### Clap integration
 
 ```rust
-#[cfg(not(feature = "no_std"))]
-{
-    use clap::Parser;
-    use human_units::{Duration, Size};
+use clap::Parser;
+use human_units::{Duration, Size};
 
-    #[derive(Parser, Debug)]
-    struct Args {
-        #[arg(long, value_parser=clap::value_parser!(Duration))]
-        timeout: Duration,
-        #[arg(long, value_parser=clap::value_parser!(Size))]
-        size: Size,
-    }
-
-    let args = Args::parse_from(["test-clap", "--timeout", "1m", "--size", "1g"]);
-    assert_eq!(args.timeout, Duration(core::time::Duration::from_secs(60)));
-    assert_eq!(args.size, Size(1024_u64.pow(3)));
+#[derive(Parser, Debug)]
+struct Args {
+    #[arg(long, value_parser=clap::value_parser!(Duration))]
+    timeout: Duration,
+    #[arg(long, value_parser=clap::value_parser!(Size))]
+    size: Size,
 }
+
+let args = Args::parse_from(["test-clap", "--timeout", "1m", "--size", "1g"]);
+assert_eq!(args.timeout, Duration(core::time::Duration::from_secs(60)));
+assert_eq!(args.size, Size(1024_u64.pow(3)));
 ```
 
 ## Performance benchmarks

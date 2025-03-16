@@ -1,4 +1,4 @@
-use crate::si::Prefix;
+use crate::si::MIN_PREFIX;
 use crate::si::PREFIXES;
 use crate::Buffer;
 
@@ -15,15 +15,13 @@ pub trait FormatSiUnit {
     /// Represent the value as a number using the largest possible unit prefix.
     ///
     /// The number has integer part in the range `1..=999` and fractional part in the range `0..=9`.
-    /// The default prefix is _nano_, i.e. the value of `1` means "one nano-something".
-    fn format_si_unit(self, symbol: &str, prefix: Prefix) -> FormattedUnit;
+    fn format_si_unit(self, symbol: &str) -> FormattedUnit;
 }
 
-impl_format_si_unit!(u128, format_u128);
-impl_format_si_unit!(u64, format_u64);
-impl_format_si_unit!(u32, format_u32);
-impl_format_si_unit!(u16, format_u16);
-impl_format_si_unit!(usize, format_usize);
+impl_format_si_unit!(u128, format_unit_u128);
+impl_format_si_unit!(u64, format_unit_u64);
+impl_format_si_unit!(u32, format_unit_u32);
+impl_format_si_unit!(u16, format_unit_u16);
 
 /// An approximate value that consists of integral and fraction parts, prefix and symbol.
 pub struct FormattedUnit<'prefix, 'symbol> {
@@ -58,7 +56,7 @@ impl<'prefix, 'symbol> FormattedUnit<'prefix, 'symbol> {
 impl core::fmt::Display for FormattedUnit<'_, '_> {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         let mut buf = Buffer::<MAX_LEN>::new();
-        buf.write_u64(self.integer as u64, MAX_POWOF10);
+        buf.write_u16(self.integer, MAX_POWOF10);
         if self.fraction != 0 {
             buf.write_byte(b'.');
             buf.write_byte(b'0' + self.fraction);
@@ -73,12 +71,12 @@ impl core::fmt::Display for FormattedUnit<'_, '_> {
 macro_rules! impl_format_si_unit {
     ($uint: ident, $format: ident) => {
         impl FormatSiUnit for $uint {
-            fn format_si_unit(self, symbol: &str, prefix: Prefix) -> FormattedUnit {
+            fn format_si_unit(self, symbol: &str) -> FormattedUnit {
                 let (integer, fraction, i) = crate::si::$format(self);
                 FormattedUnit {
                     integer,
                     fraction,
-                    prefix: PREFIXES[prefix as usize + i],
+                    prefix: PREFIXES[MIN_PREFIX + i],
                     symbol,
                 }
             }
@@ -88,10 +86,10 @@ macro_rules! impl_format_si_unit {
 
 use impl_format_si_unit;
 
-const MAX_LEN: usize = 20;
-const MAX_POWOF10: u64 = 100;
+const MAX_LEN: usize = 64;
+const MAX_POWOF10: u16 = 100;
 
-#[cfg(all(test, not(feature = "no_std")))]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 

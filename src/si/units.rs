@@ -1,4 +1,4 @@
-use human_units_derive::si_unit;
+use crate::si::si_unit;
 
 macro_rules! define_si_units {
     { $(($name: ident, $symbol: literal, $description: literal),)* } => {
