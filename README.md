@@ -122,8 +122,11 @@ assert_eq!("2.2 GHz", cpu_freq.format_si().to_string());
 ```rust
 use human_units::si::si_unit;
 
-#[si_unit(symbol = "feet")]
-struct Length(pub u64);
+#[si_unit(symbol = "l")]
+struct Volume(pub u64);
+
+let volume = Volume(2200_000_000);
+assert_eq!("2200 ml", volume.to_string());
 ```
 
 ## Performance benchmarks

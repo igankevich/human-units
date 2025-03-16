@@ -51,6 +51,6 @@ do_test_miri() {
 clean
 #test_coverage_preamble
 test_all --no-default-features --features derive,si-units,serde,std
-test_all --no-default-features --features derive,si-units,serde
+test_all --no-default-features --features derive,si-units,serde --tests
 #test_coverage_postamble
 test_miri
