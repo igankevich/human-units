@@ -45,7 +45,7 @@ test_miri() {
 }
 
 do_test_miri() {
-    env MIRIFLAGS=-Zmiri-disable-isolation cargo +nightly miri test --features serde "$@"
+    env MIRIFLAGS=-Zmiri-disable-isolation cargo +nightly miri test --features derive,si-units,serde --tests "$@"
 }
 
 clean
