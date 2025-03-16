@@ -1,15 +1,15 @@
 [package]
 name = "human-units"
-version = "0.2.0"
-edition = "2021"
-license = "MIT"
-homepage = "https://github.com/igankevich/human-units"
-repository = "https://github.com/igankevich/human-units"
-documentation = "https://docs.rs/human-units"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+documentation.workspace = true
 readme = "README.md"
-description = "Size and duration serialization and formatting library designed for configuration files and command line arguments"
-keywords = ["format", "duration", "bytes", "configuration", "serialization"]
-categories = ["encoding", "value-formatting", "config", "data-structures"]
+description.workspace = true
+keywords.workspace = true
+categories.workspace = true
 include = ["**/*.rs", "Cargo.toml", "README.md", "LICENSE"]
 rust-version = "1.60.0"
 
@@ -18,12 +18,13 @@ features = ["serde"]
 
 [features]
 default = ["unicode"]
-serde = ["dep:serde"]
+serde = ["dep:serde", "human-units-derive/serde"]
 no_std = []
 unicode = []
 
 [dependencies]
 serde = { version = "1.0.210", features = ["derive"], optional = true }
+human-units-derive = { path = "derive", version = "=0.3.0" }
 
 [dev-dependencies]
 arbitrary = { version = "1.3.2", features = ["derive", "derive_arbitrary"] }
@@ -44,3 +45,18 @@ panic = "deny"
 
 [lints.rust]
 missing_docs = "warn"
+
+[workspace]
+members = [".", "derive"]
+default-members = [".", "derive"]
+
+[workspace.package]
+version = "0.3.0"
+edition = "2021"
+license = "MIT"
+homepage = "https://github.com/igankevich/human-units"
+repository = "https://github.com/igankevich/human-units"
+documentation = "https://docs.rs/human-units"
+description = "Units serialization and formatting library designed for configuration files and command line arguments"
+keywords = ["format", "duration", "bytes", "configuration", "serialization"]
+categories = ["encoding", "value-formatting", "config", "data-structures"]

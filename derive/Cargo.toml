@@ -1,0 +1,22 @@
+[package]
+name = "human-units-derive"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+documentation.workspace = true
+description.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[lib]
+proc-macro = true
+
+[features]
+default = []
+serde = []
+
+[dependencies]
+quote = "1.0.40"
+syn = "2.0.100"

@@ -6,7 +6,7 @@ pub struct Buffer<const N: usize> {
 }
 
 impl<const N: usize> Buffer<N> {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             data: [0_u8; N],
             position: 0,

@@ -44,26 +44,42 @@ pub fn from_str(other: &str, suffix: &'static str) -> Result<u64, Error> {
     Ok(value * factor)
 }
 
-pub fn format_inexact(value: u64) -> (u16, u8, usize) {
-    let mut i: usize = 0;
-    let mut scale = 1;
-    let mut n = value;
-    while n >= 1000 {
-        scale *= 1000;
-        n /= 1000;
-        i += 1;
-    }
-    let mut b = value % scale;
-    if b != 0 {
-        // compute the first digit of the fractional part
-        b = (b * 10_u64) / scale;
-    }
-    let integer = n;
-    let fraction = b;
-    debug_assert!(integer <= 999, "integer = {integer}");
-    debug_assert!(fraction <= 9, "fraction = {fraction}");
-    (integer as u16, fraction as u8, MIN_PREFIX as usize + i)
+macro_rules! define_format_si {
+    ($name: ident, $value: ident, $integer: ident, $fraction: ident) => {
+        /// Represent the value as a number using the largest possible unit prefix.
+        ///
+        /// The number has integer part in the range `1..=999` and fractional part in the range `0..=9`.
+        ///
+        /// Returns the integer part, the fractional part and the index of the unit prefix in
+        /// [`PREFIXES`](crate::si::PREFIXES).
+        pub fn $name(value: $value) -> ($integer, $fraction, usize) {
+            let mut i: usize = 0;
+            let mut scale = 1;
+            let mut n = value;
+            while n >= 1000 {
+                scale *= 1000;
+                n /= 1000;
+                i += 1;
+            }
+            let mut b = value % scale;
+            if b != 0 {
+                // Compute the first digit of the fractional part.
+                b = (b * 10) / scale;
+            }
+            let integer = n;
+            let fraction = b;
+            debug_assert!(integer <= 999, "integer = {integer}");
+            debug_assert!(fraction <= 9, "fraction = {fraction}");
+            (integer as $integer, fraction as $fraction, i)
+        }
+    };
 }
+
+define_format_si!(format_u128, u128, u16, u8);
+define_format_si!(format_u64, u64, u16, u8);
+define_format_si!(format_u32, u32, u16, u8);
+define_format_si!(format_u16, u16, u16, u8);
+define_format_si!(format_usize, usize, u16, u8);
 
 fn prefix_to_factor(prefix: &str) -> Result<u64, Error> {
     match PREFIXES.iter().position(|p| *p == prefix) {
@@ -77,7 +93,7 @@ const MULTIPLIER: NonZeroU64 = unsafe { NonZeroU64::new_unchecked(1000) };
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u8)]
 #[allow(dead_code)]
-enum Prefix {
+pub enum Prefix {
     Quecto = 0,
     Ronto = 1,
     Yocto = 2,
@@ -102,7 +118,7 @@ enum Prefix {
     Quetta = 20,
 }
 
-const MIN_PREFIX: Prefix = Prefix::Nano;
+pub const MIN_PREFIX: Prefix = Prefix::Nano;
 const MAX_PREFIX: Prefix = Prefix::Giga;
 
 pub const PREFIXES: [&str; 21] = [
@@ -129,8 +145,6 @@ pub const PREFIXES: [&str; 21] = [
     "Q",
 ];
 
-pub const MIN_PREFIX_LEN: usize = PREFIXES[MIN_PREFIX as usize].len();
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -149,7 +163,8 @@ mod tests {
     fn test_format_inexact() {
         arbtest(|u| {
             let exact: u64 = u.arbitrary()?;
-            let (integer, fraction, i) = format_inexact(exact);
+            let (integer, fraction, i) = format_u64(exact);
+            let i = Prefix::Nano as usize + i;
             let x = prefix_index_to_factor(i);
             let inexact = (integer as u64) * x + (fraction as u64) * x / 10;
             assert!(
