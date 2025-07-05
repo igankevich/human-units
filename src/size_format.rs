@@ -23,7 +23,7 @@ pub struct FormattedSize {
 impl Display for FormattedSize {
     fn fmt(&self, f: &mut Formatter) -> core::fmt::Result {
         let mut buf = Buffer::<MAX_LEN>::new();
-        buf.write_u64(self.integer as u64, MAX_POWOF10);
+        buf.write_u64(self.integer as u64);
         if self.fraction != 0 {
             buf.write_byte(b'.');
             buf.write_byte(b'0' + self.fraction);
@@ -35,7 +35,6 @@ impl Display for FormattedSize {
 }
 
 const MAX_LEN: usize = 10;
-const MAX_POWOF10: u64 = 1000;
 
 /**
 This trait adds [`format_size`](FormatSize::format_size) method
@@ -127,9 +126,7 @@ mod tests {
             let actual = (bytes.integer as u64) * x + (bytes.fraction as u64) * x / 10;
             assert!(
                 expected >= actual && (expected - actual) < x,
-                "expected = {}, actual = {}",
-                expected,
-                actual
+                "expected = {expected}, actual = {actual}"
             );
             Ok(())
         });
@@ -173,7 +170,7 @@ mod tests {
             };
             assert_eq!(expected.integer, integer);
             assert_eq!(expected.fraction, fraction);
-            assert_eq!(expected.unit, unit, "expected = `{}`", expected);
+            assert_eq!(expected.unit, unit, "expected = `{expected}`");
             Ok(())
         });
     }
@@ -197,7 +194,7 @@ mod tests {
             "TiB" => 1024_u64.pow(4),
             "PiB" => 1024_u64.pow(5),
             "EiB" => 1024_u64.pow(6),
-            _ => panic!("unknown unit `{}`", unit),
+            _ => panic!("unknown unit `{unit}`"),
         }
     }
 

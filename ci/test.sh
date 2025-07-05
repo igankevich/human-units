@@ -49,8 +49,10 @@ do_test_miri() {
 }
 
 clean
+export ARBTEST_BUDGET_MS=10000
 #test_coverage_preamble
 test_all --no-default-features --features derive,si-units,serde,std
 test_all --no-default-features --features derive,si-units,serde --tests
 #test_coverage_postamble
+unset ARBTEST_BUDGET_MS
 test_miri

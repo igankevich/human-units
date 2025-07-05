@@ -33,7 +33,7 @@ impl Display for Duration {
             let mut unit = "ns";
             for u in UNITS {
                 let d: NonZeroU128 = u.0.into();
-                if duration % d != 0 {
+                if !duration.is_multiple_of(d.into()) {
                     break;
                 }
                 duration = duration / d;
@@ -41,7 +41,7 @@ impl Display for Duration {
             }
             unit
         };
-        write!(f, "{}{}", duration, unit)
+        write!(f, "{duration}{unit}")
     }
 }
 
@@ -118,12 +118,12 @@ impl Display for DurationError {
 impl std::error::Error for DurationError {}
 
 const UNITS: [(NonZeroU16, &str); 6] = [
-    (unsafe { NonZeroU16::new_unchecked(1000) }, "μs"),
-    (unsafe { NonZeroU16::new_unchecked(1000) }, "ms"),
-    (unsafe { NonZeroU16::new_unchecked(1000) }, "s"),
-    (unsafe { NonZeroU16::new_unchecked(60) }, "m"),
-    (unsafe { NonZeroU16::new_unchecked(60) }, "h"),
-    (unsafe { NonZeroU16::new_unchecked(24) }, "d"),
+    (NonZeroU16::new(1000).unwrap(), "μs"),
+    (NonZeroU16::new(1000).unwrap(), "ms"),
+    (NonZeroU16::new(1000).unwrap(), "s"),
+    (NonZeroU16::new(60).unwrap(), "m"),
+    (NonZeroU16::new(60).unwrap(), "h"),
+    (NonZeroU16::new(24).unwrap(), "d"),
 ];
 
 const NANOS_PER_SEC: u32 = 1_000_000_000_u32;
@@ -201,7 +201,7 @@ mod tests {
             let expected: Duration = u.arbitrary()?;
             let string = expected.to_string();
             let actual: Duration = string.parse().unwrap();
-            assert_eq!(expected, actual, "string = `{}`", string);
+            assert_eq!(expected, actual, "string = `{string}`");
             Ok(())
         });
     }
@@ -234,17 +234,18 @@ mod tests {
             let prefix = *u.choose(&["", " ", "  "]).unwrap();
             let infix = *u.choose(&["", " ", "  "]).unwrap();
             let suffix = *u.choose(&["", " ", "  "]).unwrap();
-            let expected = format!("{}{}{}{}{}", prefix, number, infix, unit, suffix);
+            let expected = format!("{prefix}{number}{infix}{unit}{suffix}");
             let expected_duration: Duration = expected.parse().unwrap();
             let actual = expected_duration.to_string();
             let actual_duration: Duration = actual.parse().unwrap();
             assert_eq!(
                 expected_duration, actual_duration,
-                "string 1 = `{}`, string 2 = `{}`",
-                expected, actual
+                "string 1 = `{expected}`, string 2 = `{actual}`"
             );
             assert!(
-                expected == actual || actual_duration.0.as_nanos() % number == 0 || number == 0
+                expected == actual
+                    || actual_duration.0.as_nanos().is_multiple_of(number)
+                    || number == 0
             );
             Ok(())
         });

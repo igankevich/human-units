@@ -31,7 +31,7 @@ impl Display for Size {
             let mut unit = "";
             for u in UNITS {
                 let d: NonZeroU64 = u.0.into();
-                if size % d != 0 {
+                if !size.is_multiple_of(d.into()) {
                     break;
                 }
                 size /= d;
@@ -39,7 +39,7 @@ impl Display for Size {
             }
             unit
         };
-        write!(f, "{}{}", size, unit)
+        write!(f, "{size}{unit}")
     }
 }
 
@@ -113,10 +113,10 @@ const fn unit_to_factor(unit: u8) -> Result<u64, SizeError> {
 }
 
 const UNITS: [(NonZeroU16, &str); 4] = [
-    (unsafe { NonZeroU16::new_unchecked(1024) }, "k"),
-    (unsafe { NonZeroU16::new_unchecked(1024) }, "m"),
-    (unsafe { NonZeroU16::new_unchecked(1024) }, "g"),
-    (unsafe { NonZeroU16::new_unchecked(1024) }, "t"),
+    (NonZeroU16::new(1024).unwrap(), "k"),
+    (NonZeroU16::new(1024).unwrap(), "m"),
+    (NonZeroU16::new(1024).unwrap(), "g"),
+    (NonZeroU16::new(1024).unwrap(), "t"),
 ];
 
 #[cfg(all(test, feature = "std"))]
@@ -171,7 +171,7 @@ mod tests {
             let expected: Size = u.arbitrary()?;
             let string = expected.to_string();
             let actual: Size = string.parse().unwrap();
-            assert_eq!(expected, actual, "string = `{}`", string);
+            assert_eq!(expected, actual, "string = `{string}`");
             Ok(())
         });
     }
@@ -196,16 +196,15 @@ mod tests {
             let prefix = *u.choose(&["", " ", "  "]).unwrap();
             let infix = *u.choose(&["", " ", "  "]).unwrap();
             let suffix = *u.choose(&["", " ", "  "]).unwrap();
-            let expected = format!("{}{}{}{}{}", prefix, number, infix, unit, suffix);
+            let expected = format!("{prefix}{number}{infix}{unit}{suffix}");
             let expected_size: Size = expected.parse().unwrap();
             let actual = expected_size.to_string();
             let actual_size: Size = actual.parse().unwrap();
             assert_eq!(
                 expected_size, actual_size,
-                "string 1 = `{}`, string 2 = `{}`",
-                expected, actual
+                "string 1 = `{expected}`, string 2 = `{actual}`"
             );
-            assert!(expected == actual || actual_size.0 % number == 0);
+            assert!(expected == actual || actual_size.0.is_multiple_of(number));
             Ok(())
         });
     }

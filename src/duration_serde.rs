@@ -10,7 +10,7 @@ impl serde::Serialize for Duration {
         S: serde::Serializer,
     {
         let mut buf = Buffer::<{ Duration::MAX_STRING_LEN }>::new();
-        let _ = write!(&mut buf, "{}", self);
+        let _ = write!(&mut buf, "{self}");
         s.serialize_str(unsafe { core::str::from_utf8_unchecked(buf.as_slice()) })
     }
 }
@@ -76,8 +76,7 @@ mod tests {
         assert_eq!(
             Duration::MAX_STRING_LEN,
             string.len(),
-            "string = `{}`",
-            string
+            "string = {string:?}"
         );
     }
 

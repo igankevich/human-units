@@ -9,7 +9,6 @@ use syn::Expr;
 use syn::Fields;
 use syn::Ident;
 use syn::Lit;
-use syn::LitInt;
 use syn::Meta;
 use syn::Path;
 use syn::PathArguments;
@@ -74,15 +73,12 @@ pub fn si_unit(args: TokenStream, item: TokenStream) -> TokenStream {
         .get_ident()
         .expect("Failed to parse the type of the struct field");
     if !is_supported_type(uint) {
-        panic!("`si_unit`: the struct field should be a primitive unsigned integer, supported types: {:?}", UINT_TYPES);
+        panic!("`si_unit`: the struct field should be a primitive unsigned integer, supported types: {UINT_TYPES:?}");
     }
     let uint_string_len = max_string_len(uint.to_string().as_str());
     let min_prefix_len = 1;
     let max_string_len = uint_string_len + 1 + min_prefix_len + symbol.len();
-    let serde_visitor = Ident::new(
-        &format!("{}HumanUnitsSerdeVisitor", newtype),
-        newtype.span(),
-    );
+    let serde_visitor = Ident::new(&format!("{newtype}HumanUnitsSerdeVisitor"), newtype.span());
     let crate_name = if internal {
         let mut segments = Punctuated::new();
         segments.push_value(PathSegment {
@@ -104,11 +100,7 @@ pub fn si_unit(args: TokenStream, item: TokenStream) -> TokenStream {
             segments,
         }
     };
-    let uint_max_pow10 = LitInt::new(
-        max_power_of_10(uint.to_string().as_str()),
-        Span::call_site().into(),
-    );
-    let write_unit = Ident::new(&format!("write_unit_{}", uint), Span::call_site().into());
+    let write_unit = Ident::new(&format!("write_unit_{uint}"), Span::call_site().into());
     let serde = cfg!(feature = "serde").then_some(quote! {
         impl serde::Serialize for #newtype {
             fn serialize<S>(&self, s: S) -> core::result::Result<S::Ok, S::Error>
@@ -116,7 +108,7 @@ pub fn si_unit(args: TokenStream, item: TokenStream) -> TokenStream {
                 S: serde::Serializer,
             {
                 let mut buf = #crate_name::Buffer::<{ #newtype::MAX_STRING_LEN }>::new();
-                buf.#write_unit(self.0, #uint_max_pow10, #symbol);
+                buf.#write_unit(self.0, #symbol);
                 s.serialize_str(unsafe { buf.as_str() })
             }
         }
@@ -174,7 +166,7 @@ pub fn si_unit(args: TokenStream, item: TokenStream) -> TokenStream {
         impl core::fmt::Display for #newtype {
             fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
                 let mut buf = #crate_name::Buffer::<{ Self::MAX_STRING_LEN }>::new();
-                buf.#write_unit(self.0, #uint_max_pow10, #symbol);
+                buf.#write_unit(self.0, #symbol);
                 f.write_str(unsafe { buf.as_str() })
             }
         }
@@ -210,16 +202,6 @@ fn max_string_len(ty: &str) -> usize {
     }
 }
 
-fn max_power_of_10(ty: &str) -> &'static str {
-    match ty {
-        "u128" => "100000000000000000000000000000000000000",
-        "u64" => "10000000000000000000",
-        "u32" => "1000000000",
-        "u16" => "10000",
-        _ => panic!("`max_power_of_10`: Unsupported type {ty:?}"),
-    }
-}
-
 const UINT_TYPES: [&str; 5] = ["u128", "u64", "u32", "u16", "u8"];
 
 #[cfg(test)]
@@ -236,37 +218,5 @@ mod tests {
         ] {
             assert_eq!(max, max_string_len(ty));
         }
-    }
-
-    #[test]
-    fn test_max_power_of_10() {
-        assert_eq!(
-            None,
-            max_power_of_10("u128")
-                .parse::<u128>()
-                .unwrap()
-                .checked_mul(10)
-        );
-        assert_eq!(
-            None,
-            max_power_of_10("u64")
-                .parse::<u64>()
-                .unwrap()
-                .checked_mul(10)
-        );
-        assert_eq!(
-            None,
-            max_power_of_10("u32")
-                .parse::<u32>()
-                .unwrap()
-                .checked_mul(10)
-        );
-        assert_eq!(
-            None,
-            max_power_of_10("u16")
-                .parse::<u16>()
-                .unwrap()
-                .checked_mul(10)
-        );
     }
 }

@@ -1,5 +1,3 @@
-use crate::si::MIN_PREFIX;
-use crate::si::PREFIXES;
 use crate::Buffer;
 
 /// Format the value as a number using the largest possible SI prefix.
@@ -18,11 +16,6 @@ pub trait FormatSiUnit {
     fn format_si_unit(self, symbol: &str) -> FormattedUnit<'_>;
 }
 
-impl_format_si_unit!(u128, format_unit_u128);
-impl_format_si_unit!(u64, format_unit_u64);
-impl_format_si_unit!(u32, format_unit_u32);
-impl_format_si_unit!(u16, format_unit_u16);
-
 /// An approximate value that consists of integral and fraction parts, prefix and symbol.
 pub struct FormattedUnit<'symbol> {
     pub(crate) prefix: &'static str,
@@ -33,22 +26,22 @@ pub struct FormattedUnit<'symbol> {
 
 impl<'symbol> FormattedUnit<'symbol> {
     /// Unit prefix.
-    pub fn prefix(&self) -> &'static str {
+    pub const fn prefix(&self) -> &'static str {
         self.prefix
     }
 
     /// Unit symbol.
-    pub fn symbol(&self) -> &'symbol str {
+    pub const fn symbol(&self) -> &'symbol str {
         self.symbol
     }
 
     /// Integral part. Max. value is 999.
-    pub fn integer(&self) -> u16 {
+    pub const fn integer(&self) -> u16 {
         self.integer
     }
 
     /// Integral part. Max. value is 9.
-    pub fn fraction(&self) -> u8 {
+    pub const fn fraction(&self) -> u8 {
         self.fraction
     }
 }
@@ -56,7 +49,7 @@ impl<'symbol> FormattedUnit<'symbol> {
 impl core::fmt::Display for FormattedUnit<'_> {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         let mut buf = Buffer::<MAX_LEN>::new();
-        buf.write_u16(self.integer, MAX_POWOF10);
+        buf.write_u16(self.integer);
         if self.fraction != 0 {
             buf.write_byte(b'.');
             buf.write_byte(b'0' + self.fraction);
@@ -68,26 +61,7 @@ impl core::fmt::Display for FormattedUnit<'_> {
     }
 }
 
-macro_rules! impl_format_si_unit {
-    ($uint: ident, $format: ident) => {
-        impl FormatSiUnit for $uint {
-            fn format_si_unit(self, symbol: &str) -> FormattedUnit<'_> {
-                let (integer, fraction, i) = crate::si::$format(self);
-                FormattedUnit {
-                    integer,
-                    fraction,
-                    prefix: PREFIXES[MIN_PREFIX + i],
-                    symbol,
-                }
-            }
-        }
-    };
-}
-
-use impl_format_si_unit;
-
 const MAX_LEN: usize = 64;
-const MAX_POWOF10: u16 = 100;
 
 #[cfg(all(test, feature = "std"))]
 mod tests {
@@ -113,7 +87,7 @@ mod tests {
                 Some(word) => word.parse().unwrap(),
                 None => 0,
             };
-            assert_eq!(expected.integer, integer);
+            assert_eq!(expected.integer, integer, "string = {string:?}");
             assert_eq!(expected.fraction, fraction);
             assert_eq!(
                 format!("{}{}", expected.prefix, expected.symbol),

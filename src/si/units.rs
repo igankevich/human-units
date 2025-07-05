@@ -41,6 +41,8 @@ define_si_units! {
     (AbsorbedDose, "Gy", "Absorbed dose."),
     (DoseEquivalent, "Sy", "Dose equivalent."),
     (CatalyticActivity, "kat", "Catalytic activity."),
+    // Extra units.
+    (Size, "B", "Data size."),
 }
 
 #[cfg(feature = "unicode")]

@@ -23,7 +23,7 @@ pub struct FormattedDuration {
 impl Display for FormattedDuration {
     fn fmt(&self, f: &mut Formatter) -> core::fmt::Result {
         let mut buf = Buffer::<MAX_LEN>::new();
-        buf.write_u64(self.integer, MAX_POWOF10);
+        buf.write_u64(self.integer);
         if self.fraction != 0 {
             buf.write_byte(b'.');
             buf.write_byte(b'0' + self.fraction);
@@ -35,7 +35,6 @@ impl Display for FormattedDuration {
 }
 
 const MAX_LEN: usize = 21;
-const MAX_POWOF10: u64 = 100000000000000;
 
 /**
 This trait adds [`format_duration`](FormatDuration::format_duration) method to
@@ -237,7 +236,7 @@ mod tests {
             };
             assert_eq!(expected.integer, integer);
             assert_eq!(expected.fraction, fraction);
-            assert_eq!(expected.unit, unit, "expected = `{}`", expected);
+            assert_eq!(expected.unit, unit, "expected = `{expected}`");
             Ok(())
         });
     }
@@ -261,7 +260,7 @@ mod tests {
             "m" => 60_u64 * 1000_u64.pow(3),
             "h" => 60_u64 * 60_u64 * 1000_u64.pow(3),
             "d" => 24_u64 * 60_u64 * 60_u64 * 1000_u64.pow(3),
-            _ => panic!("unknown unit `{}`", unit),
+            _ => panic!("unknown unit `{unit}`"),
         }
     }
 
