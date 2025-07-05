@@ -157,10 +157,9 @@ macro_rules! parameterize {
                 $(
                     #[test]
                     fn [<test_write_ $uint>]() {
-                        use alloc::String::ToString;
                         arbtest(|u| {
                             let number: $uint = u.arbitrary()?;
-                            let expected = number.to_string();
+                            let expected = format!("{}", number);
                             let mut buf = Buffer::<64>::new();
                             buf.[<write_ $uint>](number);
                             let actual = unsafe { buf.as_str() };
