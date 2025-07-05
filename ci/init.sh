@@ -1,7 +1,7 @@
 #!/bin/sh
 
 apt_get() {
-    env DEBIAN_FRONTEND=noninteractive apt-get -qq "$@"
+    env DEBIAN_FRONTEND=noninteractive sudo -n apt-get -qq "$@"
 }
 
 . ./ci/preamble.sh
