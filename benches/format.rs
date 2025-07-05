@@ -1,5 +1,4 @@
 #![allow(missing_docs)]
-#![allow(dead_code)]
 
 use criterion::{criterion_group, criterion_main, Criterion};
 use paste::paste;
@@ -11,7 +10,7 @@ macro_rules! bench {
     };
 }
 
-macro_rules! define_unitify {
+macro_rules! parameterize {
     ($($uint: ident $(, $ilog: literal)+ ;)+) => {
         paste! {
             $(
@@ -106,7 +105,7 @@ macro_rules! define_unitify {
     };
 }
 
-define_unitify! {
+parameterize! {
     u128, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1;
     u64, 6, 5, 4, 3, 2, 1;
     u32, 3, 2, 1;

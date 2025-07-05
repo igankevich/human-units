@@ -1,5 +1,4 @@
 #![allow(missing_docs)]
-#![allow(dead_code)]
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use human_units::Buffer;

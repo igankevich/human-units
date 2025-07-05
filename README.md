@@ -117,16 +117,34 @@ assert_eq!("2.2 GHz", cpu_freq.format_si().to_string());
 ```
 
 
+### IEC units
+
+```rust
+use human_units::iec::{FormatIec, Byte};
+
+let size = Byte::from_iec(1536 * 1024);
+assert_eq!("1536 KiB", size.to_string());
+assert_eq!("1.5 MiB", size.format_iec().to_string());
+```
+
+
 ### Custom units
 
 ```rust
 use human_units::si::si_unit;
+use human_units::iec::iec_unit;
 
 #[si_unit(symbol = "l")]
 struct Volume(pub u64);
 
 let volume = Volume(2200_000_000);
 assert_eq!("2200 ml", volume.to_string());
+
+#[iec_unit(symbol = "B/s")]
+struct Throughput(pub u64);
+
+let throughput = Throughput(100 * 1024);
+assert_eq!("100 KiB/s", throughput.to_string());
 ```
 
 ## Performance benchmarks

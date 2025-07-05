@@ -9,6 +9,7 @@ mod duration;
 mod duration_format;
 #[cfg(feature = "serde")]
 mod duration_serde;
+pub mod iec;
 pub mod si;
 mod size;
 mod size_format;

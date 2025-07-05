@@ -45,14 +45,14 @@ test_miri() {
 }
 
 do_test_miri() {
-    env MIRIFLAGS=-Zmiri-disable-isolation cargo +nightly miri test --features derive,si-units,serde --tests "$@"
+    env MIRIFLAGS=-Zmiri-disable-isolation cargo +nightly miri test --features derive,si-units,iec-units,serde --tests "$@"
 }
 
 clean
 export ARBTEST_BUDGET_MS=10000
 #test_coverage_preamble
-test_all --no-default-features --features derive,si-units,serde,std
-test_all --no-default-features --features derive,si-units,serde --tests
+test_all --no-default-features --features derive,si-units,iec-units,serde,std
+test_all --no-default-features --features derive,si-units,iec-units,serde --tests
 #test_coverage_postamble
 unset ARBTEST_BUDGET_MS
 test_miri

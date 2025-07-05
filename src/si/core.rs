@@ -23,7 +23,7 @@ impl std::error::Error for Error {}
 
 /// Parse value from a string with SI unit.
 pub trait SiFromStr {
-    /// Parse value thas has the specified unit symbol from string.
+    /// Parse value that has the specified unit symbol from string.
     fn si_unit_from_str(string: &str, symbol: &str) -> Result<Self, Error>
     where
         Self: Sized;
@@ -48,7 +48,7 @@ macro_rules! parameterize {
 
                 impl<const N: usize> Buffer<N> {
                     #[doc(hidden)]
-                    pub fn [<write_unit_ $uint>](&mut self, value: $uint, symbol: &str) {
+                    pub fn [<write_si_unit_ $uint>](&mut self, value: $uint, symbol: &str) {
                         let (value, i) = [<unitify_ $uint>](value);
                         self.[<write_ $uint>](value);
                         self.write_byte(b' ');

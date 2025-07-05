@@ -1,3 +1,5 @@
+#![allow(non_snake_case)]
+
 use proc_macro::Span;
 use proc_macro::TokenStream;
 use quote::quote;
@@ -17,6 +19,30 @@ use syn::Type;
 
 #[proc_macro_attribute]
 pub fn si_unit(args: TokenStream, item: TokenStream) -> TokenStream {
+    generic_unit(args, item, "si_unit", "si", 1_000_000_000, 1)
+}
+
+#[proc_macro_attribute]
+pub fn iec_unit(args: TokenStream, item: TokenStream) -> TokenStream {
+    generic_unit(args, item, "iec_unit", "iec", 1, 10)
+}
+
+fn generic_unit(
+    args: TokenStream,
+    item: TokenStream,
+    macro_name: &str,
+    system: &str,
+    min_prefix: u64,
+    min_prefix_len: usize,
+) -> TokenStream {
+    let System: String = system
+        .to_string()
+        .chars()
+        .enumerate()
+        .map(|(i, ch)| if i == 0 { ch.to_ascii_uppercase() } else { ch })
+        .collect();
+    let SYSTEM = system.to_ascii_uppercase();
+    let system = Ident::new(system, Span::call_site().into());
     let args = parse_macro_input!(args with Punctuated::<Meta, syn::Token![,]>::parse_terminated);
     let symbol = args
         .iter()
@@ -29,21 +55,25 @@ pub fn si_unit(args: TokenStream, item: TokenStream) -> TokenStream {
                 match &nv.value {
                     Expr::Lit(literal) => match &literal.lit {
                         Lit::Str(symbol) => Some(symbol.value()),
-                        _ => panic!("`si_unit(symbol = \"...\")` should be a string literal"),
+                        _ => panic!("`{macro_name}(symbol = \"...\")` should be a string literal"),
                     },
                     Expr::Group(group) => match &*group.expr {
                         Expr::Lit(literal) => match &literal.lit {
                             Lit::Str(symbol) => Some(symbol.value()),
-                            _ => panic!("`si_unit(symbol = \"...\")` should be a string literal"),
+                            _ => panic!(
+                                "`{macro_name}(symbol = \"...\")` should be a string literal"
+                            ),
                         },
-                        _ => panic!("`si_unit(symbol = \"...\")` should be a literal"),
+                        _ => panic!("`{macro_name}(symbol = \"...\")` should be a literal"),
                     },
-                    _ => panic!("`si_unit(symbol = \"...\")` should be a literal"),
+                    _ => panic!("`{macro_name}(symbol = \"...\")` should be a literal"),
                 }
             }
             _ => None,
         })
-        .expect("`si_unit` should at least contain `symbol = \"...\"` attribute");
+        .unwrap_or_else(|| {
+            panic!("`{macro_name}` should at least contain `symbol = \"...\"` attribute")
+        });
     let internal = args.iter().any(|meta| match meta {
         Meta::Path(path) => {
             let Some(path) = path.get_ident() else {
@@ -56,27 +86,26 @@ pub fn si_unit(args: TokenStream, item: TokenStream) -> TokenStream {
     let item = parse_macro_input!(item as DeriveInput);
     let newtype = &item.ident;
     let Data::Struct(data) = &item.data else {
-        panic!("`si_unit` can only be applied to structs with a single unnamed field");
+        panic!("`{macro_name}` can only be applied to structs with a single unnamed field");
     };
     let Fields::Unnamed(fields) = &data.fields else {
-        panic!("`si_unit` can only be applied to structs with a single unnamed field");
+        panic!("`{macro_name}` can only be applied to structs with a single unnamed field");
     };
     if fields.unnamed.len() != 1 {
-        panic!("`si_unit` can only be applied to structs with a single unnamed field");
+        panic!("`{macro_name}` can only be applied to structs with a single unnamed field");
     }
     let field = fields.unnamed.first().expect("Checked the length above");
     let Type::Path(path) = &field.ty else {
-        panic!("`si_unit`: the struct field should be a primitive unsigned integer");
+        panic!("`{macro_name}`: the struct field should be a primitive unsigned integer");
     };
     let uint = path
         .path
         .get_ident()
         .expect("Failed to parse the type of the struct field");
     if !is_supported_type(uint) {
-        panic!("`si_unit`: the struct field should be a primitive unsigned integer, supported types: {UINT_TYPES:?}");
+        panic!("`{macro_name}`: the struct field should be a primitive unsigned integer, supported types: {UINT_TYPES:?}");
     }
     let uint_string_len = max_string_len(uint.to_string().as_str());
-    let min_prefix_len = 1;
     let max_string_len = uint_string_len + 1 + min_prefix_len + symbol.len();
     let serde_visitor = Ident::new(&format!("{newtype}HumanUnitsSerdeVisitor"), newtype.span());
     let crate_name = if internal {
@@ -100,10 +129,20 @@ pub fn si_unit(args: TokenStream, item: TokenStream) -> TokenStream {
             segments,
         }
     };
-    let write_unit = Ident::new(&format!("write_unit_{uint}"), Span::call_site().into());
+    let write_unit = Ident::new(
+        &format!("write_{system}_unit_{uint}"),
+        Span::call_site().into(),
+    );
+    let from = Ident::new(&format!("from_{system}"), Span::call_site().into());
+    let Format = Ident::new(&format!("Format{System}"), Span::call_site().into());
+    let format = Ident::new(&format!("format_{system}"), Span::call_site().into());
+    let FormatUnit = Ident::new(&format!("Format{System}Unit"), Span::call_site().into());
+    let format_unit = Ident::new(&format!("format_{system}_unit"), Span::call_site().into());
+    let UnitFromStr = Ident::new(&format!("{System}FromStr"), Span::call_site().into());
+    let unit_from_str = Ident::new(&format!("{system}_unit_from_str"), Span::call_site().into());
     let serde = cfg!(feature = "serde").then_some(quote! {
         impl serde::Serialize for #newtype {
-            fn serialize<S>(&self, s: S) -> core::result::Result<S::Ok, S::Error>
+            fn serialize<S>(&self, s: S) -> ::core::result::Result<S::Ok, S::Error>
             where
                 S: serde::Serializer,
             {
@@ -127,11 +166,11 @@ pub fn si_unit(args: TokenStream, item: TokenStream) -> TokenStream {
         impl<'a> serde::de::Visitor<'a> for #serde_visitor {
             type Value = #newtype;
 
-            fn expecting(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+            fn expecting(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
                 f.write_str(concat!("A string obtained by `", stringify!(#newtype), "::to_string`"))
             }
 
-            fn visit_str<E>(self, value: &str) -> core::result::Result<Self::Value, E>
+            fn visit_str<E>(self, value: &str) -> ::core::result::Result<Self::Value, E>
             where
                 E: serde::de::Error,
             {
@@ -151,30 +190,30 @@ pub fn si_unit(args: TokenStream, item: TokenStream) -> TokenStream {
             /// Unit symbol.
             pub const SYMBOL: &'static str = #symbol;
 
-            /// Convert from a value without SI prefix.
-            pub fn from_si(value: #uint) -> Self {
-                Self(value * 1_000_000_000)
+            #[doc = concat!("Convert from a value without ", #SYSTEM, " prefix.")]
+            pub fn #from(value: #uint) -> Self {
+                Self(value * #min_prefix)
             }
         }
 
-        impl #crate_name::si::FormatSi for #newtype {
-            fn format_si(&self) -> #crate_name::si::FormattedUnit<'static> {
-                #crate_name::si::FormatSiUnit::format_si_unit(self.0, #symbol)
+        impl #crate_name::#system::#Format for #newtype {
+            fn #format(&self) -> #crate_name::#system::FormattedUnit<'static> {
+                #crate_name::#system::#FormatUnit::#format_unit(self.0, #symbol)
             }
         }
 
-        impl core::fmt::Display for #newtype {
-            fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        impl ::core::fmt::Display for #newtype {
+            fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
                 let mut buf = #crate_name::Buffer::<{ Self::MAX_STRING_LEN }>::new();
                 buf.#write_unit(self.0, #symbol);
                 f.write_str(unsafe { buf.as_str() })
             }
         }
 
-        impl core::str::FromStr for #newtype {
-            type Err = #crate_name::si::Error;
+        impl ::core::str::FromStr for #newtype {
+            type Err = #crate_name::#system::Error;
             fn from_str(other: &str) -> Result<Self, Self::Err> {
-                #crate_name::si::SiFromStr::si_unit_from_str(other, Self::SYMBOL).map(#newtype)
+                #crate_name::#system::#UnitFromStr::#unit_from_str(other, Self::SYMBOL).map(#newtype)
             }
         }
 

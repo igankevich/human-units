@@ -309,7 +309,7 @@ checksum = "f58b778a5761513caf593693f8951c97a5b610841e754788400f32102eefdff1"
 
 [[package]]
 name = "human-units"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "arbitrary",
  "arbtest",
@@ -328,7 +328,7 @@ dependencies = [
 
 [[package]]
 name = "human-units-derive"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "quote",
  "syn",

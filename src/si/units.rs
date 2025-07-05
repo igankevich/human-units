@@ -1,7 +1,13 @@
+#![allow(deprecated)]
+
 use crate::si::si_unit;
 
-macro_rules! define_si_units {
-    { $(($name: ident, $symbol: literal, $description: literal),)* } => {
+macro_rules! define_units {
+    { $((
+        $name: ident
+        $symbol: literal
+        $description: literal
+    ))* } => {
         $(
             #[doc = $description]
             #[si_unit(symbol = $symbol, internal)]
@@ -10,47 +16,53 @@ macro_rules! define_si_units {
     };
 }
 
-define_si_units! {
+define_units! {
     // Base units
-    (Time, "s", "Time."),
-    (Length, "m", "Length."),
-    (Mass, "g", "Mass."),
-    (ElectricCurrent, "A", "Electric current."),
-    (ThermodynamicTemperature, "K", "Thermodynamic temperature."),
-    (AmountOfSubstance, "mol", "Amount of substance."),
-    (LuminousIntensity, "cd", "Luminous intensity."),
+    (Time "s" "Time.")
+    (Length "m" "Length.")
+    (Mass "g" "Mass.")
+    (ElectricCurrent "A" "Electric current.")
+    (ThermodynamicTemperature "K" "Thermodynamic temperature.")
+    (AmountOfSubstance "mol" "Amount of substance.")
+    (LuminousIntensity "cd" "Luminous intensity.")
     // Derived units.
-    (PlaneAngle, "rad", "Plane angle."),
-    (SolidAngle, "sr", "Solid angle."),
-    (Frequency, "Hz", "Frequency."),
-    (Force, "N", "Force."),
-    (Pressure, "Pa", "Pressure."),
-    (Energy, "J", "Energy."),
-    (Power, "W", "Power."),
-    (ElectricCharge, "C", "Electric charge."),
-    (Voltage, "V", "Voltage."),
-    (Capacitance, "F", "Capacitance."),
-    (ElectricConductance, "S", "Electric conductance."),
-    (MagneticFlux, "Wb", "Magnetic flux."),
-    (MagneticFluxDensity, "T", "Magnetic flux density."),
-    (Inductance, "H", "Inductance."),
-    (CelsiusTemperature, "°C", "Celsius temperature."),
-    (LuminousFlux, "lm", "Luminous flux."),
-    (Illuminance, "lx", "Illuminance."),
-    (Radioactivity, "Bq", "Radioactivity."),
-    (AbsorbedDose, "Gy", "Absorbed dose."),
-    (DoseEquivalent, "Sy", "Dose equivalent."),
-    (CatalyticActivity, "kat", "Catalytic activity."),
-    // Extra units.
-    (Size, "B", "Data size."),
+    (PlaneAngle "rad" "Plane angle.")
+    (SolidAngle "sr" "Solid angle.")
+    (Frequency "Hz" "Frequency.")
+    (Force "N" "Force.")
+    (Pressure "Pa" "Pressure.")
+    (Energy "J" "Energy.")
+    (Power "W" "Power.")
+    (ElectricCharge "C" "Electric charge.")
+    (Voltage "V" "Voltage.")
+    (Capacitance "F" "Capacitance.")
+    (ElectricConductance "S" "Electric conductance.")
+    (MagneticFlux "Wb" "Magnetic flux.")
+    (MagneticFluxDensity "T" "Magnetic flux density.")
+    (Inductance "H" "Inductance.")
+    (CelsiusTemperature "°C" "Celsius temperature.")
+    (LuminousFlux "lm" "Luminous flux.")
+    (Illuminance "lx" "Illuminance.")
+    (Radioactivity "Bq" "Radioactivity.")
+    (AbsorbedDose "Gy" "Absorbed dose.")
+    (DoseEquivalent "Sy" "Dose equivalent.")
+    (CatalyticActivity "kat" "Catalytic activity.")
 }
 
 #[cfg(feature = "unicode")]
-define_si_units! {
-    (ElectricResistance, "Ω", "Electric resistance."),
+define_units! {
+    (ElectricResistance "Ω" "Electric resistance.")
 }
 
 #[cfg(not(feature = "unicode"))]
-define_si_units! {
-    (ElectricResistance, "ohm", "Electric resistance."),
+define_units! {
+    (ElectricResistance "ohm" "Electric resistance.")
 }
+
+/// Data size.
+#[deprecated(
+    since = "0.5.0",
+    note = "Uses the wrong min. prefix (nano). Using custom prefix is not yet supported."
+)]
+#[si_unit(symbol = "B", internal)]
+pub struct Size(pub u64);
