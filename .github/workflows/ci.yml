@@ -4,15 +4,14 @@ on: [push]
 jobs:
   ci:
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/igankevich/human-units-ci:latest
-      options: --cap-add SYS_PTRACE
     env:
       TZ: Europe/Berlin
       RUST_BACKTRACE: 1
     steps:
       - name: Checkout
         uses: actions/checkout@v4.1.4
+      - name: Init
+        run: ./ci/init.sh
       - name: Lint
         run: ./ci/lint.sh
       - name: Test
