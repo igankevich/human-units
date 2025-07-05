@@ -6,7 +6,7 @@ apt_get() {
 
 . ./ci/preamble.sh
 
-apt-get update
+apt_get update
 apt_get install --no-install-recommends \
     libclang-dev \
     shellcheck \
