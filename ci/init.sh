@@ -16,8 +16,8 @@ apt_get install --no-install-recommends \
 
 rustup toolchain add nightly \
     --target x86_64-unknown-linux-gnu \
-    --component rustfmt miri llvm-tools-preview
+    --component rustfmt,miri,llvm-tools-preview
 rustup toolchain add stable \
     --target x86_64-unknown-linux-gnu \
-    --component clippy rustfmt llvm-tools-preview
+    --component clippy,rustfmt,llvm-tools-preview
 rustup default stable
