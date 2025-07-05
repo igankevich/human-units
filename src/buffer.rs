@@ -155,6 +155,7 @@ macro_rules! parameterize {
                 use arbtest::arbtest;
 
                 $(
+                    #[cfg(feature = "std")]
                     #[test]
                     fn [<test_write_ $uint>]() {
                         arbtest(|u| {
