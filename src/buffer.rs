@@ -77,7 +77,7 @@ macro_rules! parameterize_width {
     (bisection_1, $uint: ident, ($($ilog_left: expr,)+), $ilog_midpoint: expr, ($($ilog_right: expr,)+)) => {
         paste! {
             #[inline]
-            const fn [<width_ $uint>](value: $uint) -> u8 {
+            fn [<width_ $uint>](value: $uint) -> u8 {
                 const MIDPOINT: $uint = (10 as $uint).pow($ilog_midpoint).next_power_of_two();
                 if value <= MIDPOINT {
                     $(
@@ -166,7 +166,21 @@ macro_rules! parameterize {
                             let actual = unsafe { buf.as_str() };
                             assert_eq!(expected, actual, "number = {number}");
                             Ok(())
-                        }).seed(0x7cf5f7aa00010000);
+                        });
+                    }
+
+                    #[cfg(feature = "std")]
+                    #[test]
+                    fn [<test_write_ $uint _power_of_1024>]() {
+                        arbtest(|u| {
+                            let number: $uint = u.int_in_range(0 as $uint..=$uint::MAX/1024)? * 1024;
+                            let expected = format!("{}", number);
+                            let mut buf = Buffer::<64>::new();
+                            buf.[<write_ $uint>](number);
+                            let actual = unsafe { buf.as_str() };
+                            assert_eq!(expected, actual, "number = {number}");
+                            Ok(())
+                        });
                     }
                 )+
             }
@@ -182,7 +196,7 @@ parameterize! {
     u64, bisection_1,
     ((1, 2, 3, 4, 5, 6, 7, 8, 9,), 10, (10, 11, 12, 13, 14, 15, 16, 17, 18, 19,)),
     u32, ilog10, ((1, 2, 3, 4,), 5, (5, 6, 7, 8, 9,)),
-    u16, bisection_1, ((1, 2,), 3, (3, 4,)),
+    u16, bisection_1, ((1, 2,), 2, (3, 4,)),
 }
 
 impl<const N: usize> core::fmt::Write for Buffer<N> {
