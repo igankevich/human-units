@@ -77,7 +77,7 @@ macro_rules! parameterize_width {
     (bisection_1, $uint: ident, ($($ilog_left: expr,)+), $ilog_midpoint: expr, ($($ilog_right: expr,)+)) => {
         paste! {
             #[inline]
-            fn [<width_ $uint>](value: $uint) -> u8 {
+            const fn [<width_ $uint>](value: $uint) -> u8 {
                 const MIDPOINT: $uint = (10 as $uint).pow($ilog_midpoint).next_power_of_two();
                 if value <= MIDPOINT {
                     $(
