@@ -11,7 +11,7 @@ description.workspace = true
 keywords.workspace = true
 categories.workspace = true
 include = ["**/*.rs", "Cargo.toml", "README.md", "LICENSE"]
-rust-version = "1.78"
+rust-version.workspace = true
 
 [package.metadata.docs.rs]
 features = ["serde", "std", "derive", "si-units", "iec-units"]
@@ -66,6 +66,7 @@ documentation = "https://docs.rs/human-units"
 description = "Units serialization and formatting library designed for configuration files and command line arguments"
 keywords = ["format", "duration", "bytes", "configuration", "serialization"]
 categories = ["encoding", "value-formatting", "config", "data-structures"]
+rust-version = "1.78"
 
 [[bench]]
 name = "size"

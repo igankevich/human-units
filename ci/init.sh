@@ -21,3 +21,4 @@ rustup toolchain add stable \
     --target x86_64-unknown-linux-gnu \
     --component clippy,rustfmt,llvm-tools-preview
 rustup default stable
+cargo install --quiet cargo-msrv
