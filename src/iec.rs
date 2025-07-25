@@ -2,6 +2,10 @@
 //!
 //! All units start with no prefix, end with _quebi_ prefix, and use [`u64`](::core::u64) as the underlying type.
 
+use crate::u128_is_multiple_of;
+use crate::u16_is_multiple_of;
+use crate::u32_is_multiple_of;
+use crate::u64_is_multiple_of;
 use crate::Buffer;
 use paste::paste;
 
@@ -144,7 +148,7 @@ macro_rules! parameterize {
                     $(
                         {
                             const POW: $uint = (1024 as $uint).pow($ilog);
-                            if value.is_multiple_of(POW) {
+                            if [<$uint _is_multiple_of>](value, POW) {
                                 return (value >> (10 * $ilog), $ilog);
                             }
                         }

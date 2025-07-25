@@ -13,7 +13,7 @@ pub struct Buffer<const N: usize> {
 impl<const N: usize> Buffer<N> {
     pub const fn new() -> Self {
         Self {
-            data: [const { MaybeUninit::uninit() }; N],
+            data: [MaybeUninit::uninit(); N],
             position: 0,
         }
     }

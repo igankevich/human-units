@@ -5,6 +5,7 @@
 compile_error!("Please use `cfg(not(feature = \"std\"))` instead of `cfg(feature = \"no_std\")`.");
 
 mod buffer;
+mod compat;
 mod duration;
 mod duration_format;
 #[cfg(feature = "serde")]
@@ -17,6 +18,7 @@ mod size_format;
 mod size_serde;
 
 pub use self::buffer::*;
+pub(crate) use self::compat::*;
 pub use self::duration::*;
 pub use self::duration_format::*;
 pub use self::size::*;

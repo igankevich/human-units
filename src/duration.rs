@@ -1,3 +1,4 @@
+use crate::u128_is_multiple_of;
 use core::fmt::Debug;
 use core::fmt::Display;
 use core::num::NonZeroU128;
@@ -33,7 +34,7 @@ impl Display for Duration {
             let mut unit = "ns";
             for u in UNITS {
                 let d: NonZeroU128 = u.0.into();
-                if !duration.is_multiple_of(d.into()) {
+                if !u128_is_multiple_of(duration, d.into()) {
                     break;
                 }
                 duration = duration / d;
@@ -118,12 +119,12 @@ impl Display for DurationError {
 impl std::error::Error for DurationError {}
 
 const UNITS: [(NonZeroU16, &str); 6] = [
-    (NonZeroU16::new(1000).unwrap(), "μs"),
-    (NonZeroU16::new(1000).unwrap(), "ms"),
-    (NonZeroU16::new(1000).unwrap(), "s"),
-    (NonZeroU16::new(60).unwrap(), "m"),
-    (NonZeroU16::new(60).unwrap(), "h"),
-    (NonZeroU16::new(24).unwrap(), "d"),
+    (unsafe { NonZeroU16::new_unchecked(1000) }, "μs"),
+    (unsafe { NonZeroU16::new_unchecked(1000) }, "ms"),
+    (unsafe { NonZeroU16::new_unchecked(1000) }, "s"),
+    (unsafe { NonZeroU16::new_unchecked(60) }, "m"),
+    (unsafe { NonZeroU16::new_unchecked(60) }, "h"),
+    (unsafe { NonZeroU16::new_unchecked(24) }, "d"),
 ];
 
 const NANOS_PER_SEC: u32 = 1_000_000_000_u32;
@@ -244,7 +245,7 @@ mod tests {
             );
             assert!(
                 expected == actual
-                    || actual_duration.0.as_nanos().is_multiple_of(number)
+                    || u128_is_multiple_of(actual_duration.0.as_nanos(), number)
                     || number == 0
             );
             Ok(())

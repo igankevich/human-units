@@ -1,7 +1,6 @@
+use crate::u64_is_multiple_of;
 use core::fmt::Debug;
 use core::fmt::Display;
-use core::num::NonZeroU16;
-use core::num::NonZeroU64;
 use core::ops::Deref;
 use core::ops::DerefMut;
 use core::str::FromStr;
@@ -30,12 +29,11 @@ impl Display for Size {
         } else {
             let mut unit = "";
             for u in UNITS {
-                let d: NonZeroU64 = u.0.into();
-                if !size.is_multiple_of(d.into()) {
+                if !u64_is_multiple_of(size, 1024) {
                     break;
                 }
-                size /= d;
-                unit = u.1;
+                size /= 1024;
+                unit = u;
             }
             unit
         };
@@ -112,12 +110,7 @@ const fn unit_to_factor(unit: u8) -> Result<u64, SizeError> {
     }
 }
 
-const UNITS: [(NonZeroU16, &str); 4] = [
-    (NonZeroU16::new(1024).unwrap(), "k"),
-    (NonZeroU16::new(1024).unwrap(), "m"),
-    (NonZeroU16::new(1024).unwrap(), "g"),
-    (NonZeroU16::new(1024).unwrap(), "t"),
-];
+const UNITS: [&str; 4] = ["k", "m", "g", "t"];
 
 #[cfg(all(test, feature = "std"))]
 mod tests {
@@ -204,7 +197,7 @@ mod tests {
                 expected_size, actual_size,
                 "string 1 = `{expected}`, string 2 = `{actual}`"
             );
-            assert!(expected == actual || actual_size.0.is_multiple_of(number));
+            assert!(expected == actual || u64_is_multiple_of(actual_size.0, number));
             Ok(())
         });
     }

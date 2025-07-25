@@ -1,5 +1,10 @@
 #![allow(missing_docs)]
 
+use crate::u128_is_multiple_of;
+use crate::u16_is_multiple_of;
+use crate::u32_is_multiple_of;
+use crate::u64_is_multiple_of;
+
 use criterion::{criterion_group, criterion_main, Criterion};
 use paste::paste;
 use std::hint::black_box;
@@ -25,7 +30,7 @@ macro_rules! parameterize {
                         return (0, Prefix::None as usize);
                     }
                     for prefix in Prefix::None as usize..Prefix::$max_prefix as usize {
-                        if !value.is_multiple_of(1024) {
+                        if ![<$uint _is_multiple_of>](value, 1024) {
                             return (value, prefix);
                         }
                         value >>= 10;
@@ -40,7 +45,7 @@ macro_rules! parameterize {
                     $(
                         {
                             const POW: $uint = (1024 as $uint).pow($ilog);
-                            if value.is_multiple_of(POW) {
+                            if [<$uint _is_multiple_of>](value, POW) {
                                 return (value >> (10 * $ilog), $ilog);
                             }
                         }

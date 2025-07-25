@@ -6,6 +6,10 @@ use paste::paste;
 use crate::si::unicode;
 use crate::si::FormatSiUnit;
 use crate::si::FormattedUnit;
+use crate::u128_is_multiple_of;
+use crate::u16_is_multiple_of;
+use crate::u32_is_multiple_of;
+use crate::u64_is_multiple_of;
 use crate::Buffer;
 
 /// SI unit parsing error.
@@ -38,7 +42,7 @@ macro_rules! parameterize {
                         return (0, Prefix::None as usize);
                     }
                     for prefix in MIN_PREFIX..Prefix::$max_prefix as usize {
-                        if !value.is_multiple_of(1000) {
+                        if ![<$uint _is_multiple_of>](value, 1000) {
                             return (value, prefix);
                         }
                         value /= 1000;
