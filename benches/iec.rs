@@ -1,13 +1,30 @@
 #![allow(missing_docs)]
 
-use crate::u128_is_multiple_of;
-use crate::u16_is_multiple_of;
-use crate::u32_is_multiple_of;
-use crate::u64_is_multiple_of;
-
 use criterion::{criterion_group, criterion_main, Criterion};
 use paste::paste;
 use std::hint::black_box;
+
+macro_rules! parameterize {
+    ($($uint: ident)+) => {
+        paste! {
+            $(
+                pub const fn [<$uint _is_multiple_of>](a: $uint, b: $uint) -> bool {
+                    match b {
+                        0 => a == 0,
+                        _ => a % b == 0,
+                    }
+                }
+            )+
+        }
+    };
+}
+
+parameterize! {
+    u128
+    u64
+    u32
+    u16
+}
 
 macro_rules! bench {
     ($c: ident, $func: ident, $value: expr) => {

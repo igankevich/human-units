@@ -1,21 +1,46 @@
 #![allow(missing_docs)]
 
 use criterion::{criterion_group, criterion_main, Criterion};
+use paste::paste;
 use std::hint::black_box;
+
+macro_rules! parameterize {
+    ($($uint: ident)+) => {
+        paste! {
+            $(
+                pub const fn [<$uint _is_multiple_of>](a: $uint, b: $uint) -> bool {
+                    match b {
+                        0 => a == 0,
+                        _ => a % b == 0,
+                    }
+                }
+            )+
+        }
+    };
+}
+
+parameterize! {
+    u128
+    u64
+    u32
+    u16
+}
 
 macro_rules! define_unitify {
     ($uint: ident, $func: ident $(, $prefix: ident)+ => $max_prefix: ident) => {
-        pub(crate) fn $func(mut value: $uint) -> ($uint, usize) {
-            if value == 0 {
-                return (0, Prefix::None as usize);
-            }
-            $(
-                if !value.is_multiple_of(1000) {
-                    return (value, Prefix::$prefix as usize);
+        paste! {
+            pub(crate) fn $func(mut value: $uint) -> ($uint, usize) {
+                if value == 0 {
+                    return (0, Prefix::None as usize);
                 }
-                value /= 1000;
-            )+
-            (value, Prefix::$max_prefix as usize)
+                $(
+                    if ![<$uint _is_multiple_of>](value, 1000) {
+                        return (value, Prefix::$prefix as usize);
+                    }
+                    value /= 1000;
+                )+
+                (value, Prefix::$max_prefix as usize)
+            }
         }
     };
 }
@@ -32,17 +57,19 @@ const MAX_POW_OF_10_U16: u16 = 10_000;
 
 macro_rules! define_unitify_naive {
     ($uint: ident, $func: ident, $min_prefix: ident, $max_prefix: ident) => {
-        pub(crate) fn $func(mut value: $uint) -> ($uint, usize) {
-            if value == 0 {
-                return (0, Prefix::None as usize);
-            }
-            for prefix in Prefix::$min_prefix as usize..Prefix::$max_prefix as usize {
-                if !value.is_multiple_of(1000) {
-                    return (value, prefix);
+        paste! {
+            pub(crate) fn $func(mut value: $uint) -> ($uint, usize) {
+                if value == 0 {
+                    return (0, Prefix::None as usize);
                 }
-                value /= 1000;
+                for prefix in Prefix::$min_prefix as usize..Prefix::$max_prefix as usize {
+                    if ![<$uint _is_multiple_of>](value, 1000) {
+                        return (value, prefix);
+                    }
+                    value /= 1000;
+                }
+                (value, Prefix::$max_prefix as usize)
             }
-            (value, Prefix::$max_prefix as usize)
         }
     };
 }
