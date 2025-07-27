@@ -60,6 +60,22 @@ impl core::fmt::Display for Error {
 #[cfg(feature = "std")]
 impl std::error::Error for Error {}
 
+/// Display IEC unit value.
+pub trait IecDisplay {
+    /// Maximum allowed length in string form.
+    const MAX_STRING_LEN: usize;
+
+    /// Display IEC unit value with the specified unit symbol.
+    fn iec_display(self, symbol: &str) -> Display<'_, Self>
+    where
+        Self: Sized;
+}
+
+pub struct Display<'a, T> {
+    number: T,
+    symbol: &'a str,
+}
+
 /// Parse value from a string with IEC unit.
 pub trait IecFromStr {
     /// Parse value that has the specified unit symbol from string.
@@ -131,6 +147,14 @@ impl core::fmt::Display for FormattedUnit<'_> {
 
 const MAX_LEN: usize = 64;
 
+#[rustfmt::skip]
+macro_rules! max_string_len {
+    (u128) => {39};
+    (u64) => {20};
+    (u32) => {10};
+    (u16) => {5};
+}
+
 macro_rules! parameterize {
     ($((
         $uint: ident
@@ -164,6 +188,28 @@ macro_rules! parameterize {
                         self.write_byte(b' ');
                         self.write_str_infallible(PREFIXES[i]);
                         self.write_str_infallible(symbol);
+                    }
+                }
+
+                impl IecDisplay for $uint {
+                    const MAX_STRING_LEN: usize = 64; //max_string_len!($uint);
+
+                    fn iec_display(self, symbol: &str) -> Display<'_, Self> {
+                        Display { number: self, symbol }
+                    }
+                }
+
+                impl core::fmt::Display for Display<'_, $uint> {
+                    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+                        debug_assert!(
+                            self.symbol.len() <= <$uint as IecDisplay>::MAX_STRING_LEN - max_string_len!($uint),
+                            "The symbol is too long: {} > {}",
+                            self.symbol.len(),
+                            <$uint as IecDisplay>::MAX_STRING_LEN - max_string_len!($uint),
+                        );
+                        let mut buffer: Buffer<{ <$uint as IecDisplay>::MAX_STRING_LEN }> = Buffer::new();
+                        buffer.[<write_iec_unit_ $uint>](self.number, self.symbol);
+                        f.write_str(unsafe { buffer.as_str() })
                     }
                 }
 
@@ -242,6 +288,49 @@ macro_rules! parameterize {
 
                 $(
                     #[test]
+                    fn [<test_unitify_ $uint>]() {
+                        arbtest(|u| {
+                            let number: $uint = u.arbitrary()?;
+                            let (x, prefix) = [<unitify_ $uint>](number);
+                            let p = prefix as u32 - Prefix::None as u32;
+                            let multiplier = (1024 as $uint).pow(p);
+                            assert_eq!(number, x * multiplier, "x = {x}, multiplier = {multiplier}");
+                            Ok(())
+                        });
+                    }
+
+                    #[test]
+                    fn [<test_max_string_len_ $uint>]() {
+                        let string = format!("{}", $uint::MAX);
+                        assert_eq!(max_string_len!($uint), string.len());
+                    }
+
+                    #[test]
+                    fn [<test_buffer_io_ $uint>]() {
+                        arbtest(|u| {
+                            let number: $uint = u.arbitrary()?;
+                            let symbol: String = char::from_u32(u.int_in_range(b'a'..=b'z')? as u32).unwrap().to_string();
+                            let mut buffer = Buffer::<MAX_LEN>::new();
+                            buffer.[<write_iec_unit_ $uint>](number, &symbol);
+                            let actual = $uint::iec_unit_from_str(unsafe { buffer.as_str() }, &symbol).unwrap();
+                            assert_eq!(number, actual);
+                            Ok(())
+                        });
+                    }
+
+                    #[test]
+                    fn [<test_string_io_ $uint>]() {
+                        arbtest(|u| {
+                            let number: $uint = u.arbitrary()?;
+                            let symbol: String = char::from_u32(u.int_in_range(b'a'..=b'z')? as u32).unwrap().to_string();
+                            let string = format!("{}", number.iec_display(&symbol));
+                            let actual = $uint::iec_unit_from_str(&string, &symbol).unwrap();
+                            assert_eq!(number, actual);
+                            Ok(())
+                        });
+                    }
+
+                    #[test]
                     fn [<check_prefix_ $uint>]() {
                         const MAX_POW_OF_1024: $uint = (1024 as $uint).pow($uint::MAX.ilog(1024));
                         assert_eq!(None, MAX_POW_OF_1024.checked_mul(1024));
@@ -308,8 +397,6 @@ const PREFIXES: [&str; 11] = [
 #[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
-
-    use crate::si::PREFIXES;
 
     use arbitrary::Arbitrary;
     use arbitrary::Unstructured;

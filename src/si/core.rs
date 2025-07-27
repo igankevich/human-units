@@ -34,14 +34,17 @@ pub trait SiFromStr {
 }
 
 macro_rules! parameterize {
-    ($($uint: ident, $max_prefix: ident, ($($ilog: expr,)+),)+) => {
+    ($(($uint: ident
+        $min_prefix: ident
+        $max_prefix: ident
+        ($($ilog: expr)+)))+) => {
         paste! {
             $(
                 pub(crate) fn [<unitify_ $uint>](mut value: $uint) -> ($uint, usize) {
                     if value == 0 {
                         return (0, Prefix::None as usize);
                     }
-                    for prefix in MIN_PREFIX..Prefix::$max_prefix as usize {
+                    for prefix in Prefix::$min_prefix as usize..Prefix::$max_prefix as usize {
                         if ![<$uint _is_multiple_of>](value, 1000) {
                             return (value, prefix);
                         }
@@ -75,7 +78,7 @@ macro_rules! parameterize {
                         let prefix_str = &unit[..unit.len() - symbol.len()];
                         let Some(i) = PREFIXES
                             .iter()
-                            .skip(MIN_PREFIX)
+                            .skip(Prefix::$min_prefix as usize)
                             .position(|prefix| *prefix == prefix_str)
                         else {
                             return Err(Error);
@@ -102,7 +105,7 @@ macro_rules! parameterize {
                                     return FormattedUnit {
                                         integer: integer as u16,
                                         fraction: fraction as u8,
-                                        prefix: PREFIXES[MIN_PREFIX + $ilog],
+                                        prefix: PREFIXES[Prefix::$min_prefix as usize + $ilog],
                                         symbol,
                                     };
                                 }
@@ -113,7 +116,7 @@ macro_rules! parameterize {
                         FormattedUnit {
                             integer: integer as u16,
                             fraction: 0,
-                            prefix: PREFIXES[MIN_PREFIX],
+                            prefix: PREFIXES[Prefix::$min_prefix as usize],
                             symbol,
                         }
                     }
@@ -128,6 +131,17 @@ macro_rules! parameterize {
 
                 $(
                     #[test]
+                    fn [<test_unitify_ $uint>]() {
+                        arbtest(|u| {
+                            let number: $uint = u.arbitrary()?;
+                            let (x, prefix) = [<unitify_ $uint>](number);
+                            let p = prefix as u32 - Prefix::$min_prefix as u32;
+                            assert_eq!(number, x * (1000 as $uint).pow(p));
+                            Ok(())
+                        });
+                    }
+
+                    #[test]
                     fn [<check_max_prefix_ $uint>]() {
                         const MAX_POW_OF_1000: $uint = (1000 as $uint).pow($uint::MAX.ilog(1000));
                         assert_eq!(None, MAX_POW_OF_1000.checked_mul(1000));
@@ -140,7 +154,7 @@ macro_rules! parameterize {
                         arbtest(|u| {
                             let exact: $uint = u.arbitrary()?;
                             let FormattedUnit { integer, fraction,  prefix, .. } = exact.format_si_unit("");
-                            let i = PREFIXES.iter().position(|p| p == &prefix).unwrap() - MIN_PREFIX;
+                            let i = PREFIXES.iter().position(|p| p == &prefix).unwrap() - Prefix::$min_prefix as usize;
                             let factor = (1000 as $uint).pow(i as u32);
                             let inexact = (integer as $uint) * factor + (fraction as $uint) * (factor / 10);
                             assert!(
@@ -157,10 +171,10 @@ macro_rules! parameterize {
 }
 
 parameterize! {
-    u128, Ronna, (12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1,),
-    u64, Giga, (6, 5, 4, 3, 2, 1,),
-    u32, None, (3, 2, 1,),
-    u16, Micro, (1,),
+    (u128 Nano Ronna (12 11 10 9 8 7 6 5 4 3 2 1))
+    (u64 Nano Giga (6 5 4 3 2 1))
+    (u32 Nano None (3 2 1))
+    (u16 Nano Micro (1))
 }
 
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -191,8 +205,6 @@ pub(crate) enum Prefix {
     Ronna = 19,
     Quetta = 20,
 }
-
-const MIN_PREFIX: usize = Prefix::Nano as usize;
 
 pub(crate) const PREFIXES: [&str; 21] = [
     "q", "r", "y", "z", "a", "f", "p", "n", MICRO, "m", "", "k", "M", "G", "T", "P", "E", "Z", "Y",

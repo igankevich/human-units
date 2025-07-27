@@ -223,12 +223,7 @@ fn generic_unit(
 }
 
 fn is_supported_type(ty: &Ident) -> bool {
-    for t in UINT_TYPES {
-        if ty == t {
-            return true;
-        }
-    }
-    false
+    UINT_TYPES.iter().any(|t| ty == t)
 }
 
 fn max_string_len(ty: &str) -> usize {
