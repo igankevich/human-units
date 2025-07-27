@@ -15,13 +15,11 @@
 //!   Turn off `unicode` feature to replace them with alternative ASCII-only representation.
 
 mod core;
-mod format;
 mod macros;
 #[cfg(feature = "si-units")]
 mod units;
 
 pub use self::core::*;
-pub use self::format::*;
 pub(crate) use self::macros::*;
 #[cfg(feature = "si-units")]
 pub use self::units::*;

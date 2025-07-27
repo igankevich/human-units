@@ -1,11 +1,6 @@
-use core::fmt::Debug;
-use core::fmt::Display;
-
 use paste::paste;
 
 use crate::si::unicode;
-use crate::si::FormatSiUnit;
-use crate::si::FormattedUnit;
 use crate::u128_is_multiple_of;
 use crate::u16_is_multiple_of;
 use crate::u32_is_multiple_of;
@@ -16,9 +11,9 @@ use crate::Buffer;
 #[derive(Debug)]
 pub struct Error;
 
-impl Display for Error {
+impl core::fmt::Display for Error {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        Debug::fmt(self, f)
+        core::fmt::Debug::fmt(self, f)
     }
 }
 
@@ -33,6 +28,94 @@ pub trait SiFromStr {
         Self: Sized;
 }
 
+/// Display SI unit value.
+pub trait SiDisplay {
+    /// Maximum allowed length in string form.
+    const MAX_STRING_LEN: usize;
+
+    /// Display SI unit value with the specified unit symbol.
+    fn si_display(self, symbol: &str) -> Display<'_, Self>
+    where
+        Self: Sized;
+}
+
+/// Implements [`Display`](::core::fmt::Display) for SI unit value.
+pub struct Display<'a, T> {
+    number: T,
+    symbol: &'a str,
+}
+
+/// Format the value as a number using the largest possible SI prefix.
+pub trait FormatSi {
+    /// Represent the value as a number using the largest possible unit prefix.
+    ///
+    /// The number has integer part in the range `0..=999` and fractional part in the range `0..=9`.
+    fn format_si(&self) -> FormattedUnit<'static>;
+}
+
+/// Format the value as a number using the largest possible SI prefix.
+pub trait FormatSiUnit {
+    /// Represent the value as a number using the largest possible unit prefix.
+    ///
+    /// The number has integer part in the range `0..=999` and fractional part in the range `0..=9`.
+    fn format_si_unit(self, symbol: &str) -> FormattedUnit<'_>;
+}
+
+/// An approximate value that consists of integer and fraction parts, prefix and symbol.
+pub struct FormattedUnit<'symbol> {
+    prefix: &'static str,
+    symbol: &'symbol str,
+    integer: u16,
+    fraction: u8,
+}
+
+impl<'symbol> FormattedUnit<'symbol> {
+    /// Unit prefix.
+    pub const fn prefix(&self) -> &'static str {
+        self.prefix
+    }
+
+    /// Unit symbol.
+    pub const fn symbol(&self) -> &'symbol str {
+        self.symbol
+    }
+
+    /// Integer part. Max. value is 999.
+    pub const fn integer(&self) -> u16 {
+        self.integer
+    }
+
+    /// Fraction part. Max. value is 9.
+    pub const fn fraction(&self) -> u8 {
+        self.fraction
+    }
+}
+
+impl core::fmt::Display for FormattedUnit<'_> {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        let mut buf = Buffer::<MAX_LEN>::new();
+        buf.write_u16(self.integer);
+        if self.fraction != 0 {
+            buf.write_byte(b'.');
+            buf.write_byte(b'0' + self.fraction);
+        }
+        buf.write_byte(b' ');
+        buf.write_str_infallible(self.prefix);
+        buf.write_str_infallible(self.symbol);
+        f.write_str(unsafe { buf.as_str() })
+    }
+}
+
+const MAX_LEN: usize = 64;
+
+#[rustfmt::skip]
+macro_rules! max_string_len {
+    (u128) => {39};
+    (u64) => {20};
+    (u32) => {10};
+    (u16) => {5};
+}
+
 macro_rules! parameterize {
     ($(($uint: ident
         $min_prefix: ident
@@ -40,7 +123,7 @@ macro_rules! parameterize {
         ($($ilog: expr)+)))+) => {
         paste! {
             $(
-                pub(crate) fn [<unitify_ $uint>](mut value: $uint) -> ($uint, usize) {
+                fn [<unitify_ $uint>](mut value: $uint) -> ($uint, usize) {
                     if value == 0 {
                         return (0, Prefix::None as usize);
                     }
@@ -61,6 +144,28 @@ macro_rules! parameterize {
                         self.write_byte(b' ');
                         self.write_str_infallible(PREFIXES[i]);
                         self.write_str_infallible(symbol);
+                    }
+                }
+
+                impl SiDisplay for $uint {
+                    const MAX_STRING_LEN: usize = 64;
+
+                    fn si_display(self, symbol: &str) -> Display<'_, Self> {
+                        Display { number: self, symbol }
+                    }
+                }
+
+                impl core::fmt::Display for Display<'_, $uint> {
+                    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+                        debug_assert!(
+                            self.symbol.len() <= <$uint as SiDisplay>::MAX_STRING_LEN - max_string_len!($uint),
+                            "The symbol is too long: {} > {}",
+                            self.symbol.len(),
+                            <$uint as SiDisplay>::MAX_STRING_LEN - max_string_len!($uint),
+                        );
+                        let mut buffer: Buffer<{ <$uint as SiDisplay>::MAX_STRING_LEN }> = Buffer::new();
+                        buffer.[<write_si_unit_ $uint>](self.number, self.symbol);
+                        f.write_str(unsafe { buffer.as_str() })
                     }
                 }
 
@@ -137,6 +242,37 @@ macro_rules! parameterize {
                             let (x, prefix) = [<unitify_ $uint>](number);
                             let p = prefix as u32 - Prefix::$min_prefix as u32;
                             assert_eq!(number, x * (1000 as $uint).pow(p));
+                            Ok(())
+                        });
+                    }
+
+                    #[test]
+                    fn [<test_max_string_len_ $uint>]() {
+                        let string = format!("{}", $uint::MAX);
+                        assert_eq!(max_string_len!($uint), string.len());
+                    }
+
+                    #[test]
+                    fn [<test_buffer_io_ $uint>]() {
+                        arbtest(|u| {
+                            let number: $uint = u.arbitrary()?;
+                            let symbol: String = char::from_u32(u.int_in_range(b'a'..=b'z')? as u32).unwrap().to_string();
+                            let mut buffer = Buffer::<MAX_LEN>::new();
+                            buffer.[<write_si_unit_ $uint>](number, &symbol);
+                            let actual = $uint::si_unit_from_str(unsafe { buffer.as_str() }, &symbol).unwrap();
+                            assert_eq!(number, actual);
+                            Ok(())
+                        });
+                    }
+
+                    #[test]
+                    fn [<test_string_io_ $uint>]() {
+                        arbtest(|u| {
+                            let number: $uint = u.arbitrary()?;
+                            let symbol: String = char::from_u32(u.int_in_range(b'a'..=b'z')? as u32).unwrap().to_string();
+                            let string = format!("{}", number.si_display(&symbol));
+                            let actual = $uint::si_unit_from_str(&string, &symbol).unwrap();
+                            assert_eq!(number, actual);
                             Ok(())
                         });
                     }

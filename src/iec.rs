@@ -71,6 +71,7 @@ pub trait IecDisplay {
         Self: Sized;
 }
 
+/// Implements [`Display`](::core::fmt::Display) for IEC unit value.
 pub struct Display<'a, T> {
     number: T,
     symbol: &'a str,
@@ -192,7 +193,7 @@ macro_rules! parameterize {
                 }
 
                 impl IecDisplay for $uint {
-                    const MAX_STRING_LEN: usize = 64; //max_string_len!($uint);
+                    const MAX_STRING_LEN: usize = 64;
 
                     fn iec_display(self, symbol: &str) -> Display<'_, Self> {
                         Display { number: self, symbol }
