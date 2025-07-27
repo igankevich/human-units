@@ -153,7 +153,7 @@ macro_rules! parameterize {
                             }
                         }
                     )+
-                    (value, Prefix::$max_prefix as usize)
+                    (value, Prefix::None as usize)
                 }
 
                 impl<const N: usize> Buffer<N> {
