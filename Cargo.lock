@@ -334,6 +334,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "human-units-tests"
+version = "0.5.2"
+dependencies = [
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "human_bytes"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

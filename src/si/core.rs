@@ -212,6 +212,12 @@ macro_rules! parameterize {
                 use super::*;
 
                 use arbtest::arbtest;
+                use alloc::format;
+                use alloc::string::String;
+                use alloc::string::ToString;
+
+                extern crate alloc;
+
 
                 $(
                     #[test]

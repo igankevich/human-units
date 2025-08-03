@@ -151,11 +151,12 @@ macro_rules! parameterize {
             #[cfg(test)]
             mod buffer_tests {
                 use super::*;
-
+                use alloc::format;
                 use arbtest::arbtest;
 
+                extern crate alloc;
+
                 $(
-                    #[cfg(feature = "std")]
                     #[test]
                     fn [<test_write_ $uint>]() {
                         arbtest(|u| {
@@ -169,7 +170,6 @@ macro_rules! parameterize {
                         });
                     }
 
-                    #[cfg(feature = "std")]
                     #[test]
                     fn [<test_write_ $uint _power_of_1024>]() {
                         arbtest(|u| {

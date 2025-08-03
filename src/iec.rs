@@ -265,6 +265,11 @@ macro_rules! parameterize {
                 use super::*;
 
                 use arbtest::arbtest;
+                use alloc::format;
+                use alloc::string::String;
+                use alloc::string::ToString;
+
+                extern crate alloc;
 
                 $(
                     #[test]
@@ -402,9 +407,12 @@ impl core::fmt::Display for Prefix {
 mod tests {
     use super::*;
 
+    use alloc::format;
     use arbitrary::Arbitrary;
     use arbitrary::Unstructured;
     use arbtest::arbtest;
+
+    extern crate alloc;
 
     #[test]
     fn test_io() {

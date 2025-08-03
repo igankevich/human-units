@@ -29,6 +29,9 @@ define_units! {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::string::ToString;
+
+    extern crate alloc;
 
     #[allow(deprecated)]
     #[test]

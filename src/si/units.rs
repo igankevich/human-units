@@ -66,6 +66,9 @@ pub struct Size(pub u64);
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::string::ToString;
+
+    extern crate alloc;
 
     #[test]
     fn from_si_works() {

@@ -53,8 +53,8 @@ panic = "deny"
 missing_docs = "warn"
 
 [workspace]
-members = [".", "derive"]
-default-members = [".", "derive"]
+members = [".", "derive", "human-units-tests"]
+default-members = [".", "derive", "human-units-tests"]
 
 [workspace.package]
 version = "0.5.2"
