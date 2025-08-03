@@ -6,7 +6,6 @@ use core::num::NonZeroU16;
 use core::ops::Deref;
 use core::ops::DerefMut;
 use core::str::FromStr;
-use core::time::Duration as StdDuration;
 
 /**
 Exact duration.
@@ -17,7 +16,7 @@ i.e. timeouts, cache max age, time-to-live etc.
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(all(test, feature = "std"), derive(arbitrary::Arbitrary))]
 #[repr(transparent)]
-pub struct Duration(pub StdDuration);
+pub struct Duration(pub core::time::Duration);
 
 impl Duration {
     /// Max. length of the duration in string form.
@@ -61,26 +60,26 @@ impl FromStr for Duration {
                     .try_into()
                     .map_err(|_| DurationError)?;
                 let nanoseconds = (duration % NANOS_PER_SEC as u128) as u32;
-                Ok(Self(StdDuration::new(seconds, nanoseconds)))
+                Ok(Self(core::time::Duration::new(seconds, nanoseconds)))
             }
         }
     }
 }
 
-impl From<StdDuration> for Duration {
-    fn from(other: StdDuration) -> Self {
+impl From<core::time::Duration> for Duration {
+    fn from(other: core::time::Duration) -> Self {
         Self(other)
     }
 }
 
-impl From<Duration> for StdDuration {
+impl From<Duration> for core::time::Duration {
     fn from(other: Duration) -> Self {
         other.0
     }
 }
 
 impl Deref for Duration {
-    type Target = StdDuration;
+    type Target = core::time::Duration;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -141,28 +140,46 @@ mod tests {
 
     #[test]
     fn test_duration_display() {
-        assert_eq!("123s", Duration(StdDuration::from_secs(123)).to_string());
-        assert_eq!("2m", Duration(StdDuration::from_secs(120)).to_string());
+        assert_eq!(
+            "123s",
+            Duration(core::time::Duration::from_secs(123)).to_string()
+        );
+        assert_eq!(
+            "2m",
+            Duration(core::time::Duration::from_secs(120)).to_string()
+        );
         assert_eq!(
             "1d",
-            Duration(StdDuration::from_secs(24 * 60 * 60)).to_string()
+            Duration(core::time::Duration::from_secs(24 * 60 * 60)).to_string()
         );
         assert_eq!(
             "23h",
-            Duration(StdDuration::from_secs(23 * 60 * 60)).to_string()
+            Duration(core::time::Duration::from_secs(23 * 60 * 60)).to_string()
         );
-        assert_eq!("0s", Duration(StdDuration::from_secs(0)).to_string());
-        assert_eq!("1μs", Duration(StdDuration::from_nanos(1000)).to_string());
+        assert_eq!(
+            "0s",
+            Duration(core::time::Duration::from_secs(0)).to_string()
+        );
+        assert_eq!(
+            "1μs",
+            Duration(core::time::Duration::from_nanos(1000)).to_string()
+        );
     }
 
     #[test]
     fn test_duration_parse() {
-        assert_eq!(Duration(StdDuration::from_secs(1)), "1".parse().unwrap());
         assert_eq!(
-            Duration(StdDuration::from_nanos(1000)),
+            Duration(core::time::Duration::from_secs(1)),
+            "1".parse().unwrap()
+        );
+        assert_eq!(
+            Duration(core::time::Duration::from_nanos(1000)),
             "1μs".parse().unwrap()
         );
-        assert_eq!(Duration(StdDuration::from_secs(120)), "2m".parse().unwrap());
+        assert_eq!(
+            Duration(core::time::Duration::from_secs(120)),
+            "2m".parse().unwrap()
+        );
         assert_eq!(
             "Err(DurationError)",
             format!("{:?}", "2km".parse::<Duration>())
@@ -180,18 +197,18 @@ mod tests {
     #[test]
     fn test_deref() {
         assert_eq!(
-            StdDuration::from_secs(1),
-            *Duration(StdDuration::from_secs(1)),
+            core::time::Duration::from_secs(1),
+            *Duration(core::time::Duration::from_secs(1)),
         );
-        let mut tmp = Duration(StdDuration::from_secs(1));
-        tmp.add_assign(StdDuration::from_secs(1));
-        assert_eq!(StdDuration::from_secs(2), *tmp);
+        let mut tmp = Duration(core::time::Duration::from_secs(1));
+        tmp.add_assign(core::time::Duration::from_secs(1));
+        assert_eq!(core::time::Duration::from_secs(2), *tmp);
     }
 
     #[test]
     fn test_from_into() {
-        let d1 = Duration(StdDuration::from_secs(1));
-        let d2: StdDuration = d1.into();
+        let d1 = Duration(core::time::Duration::from_secs(1));
+        let d2: core::time::Duration = d1.into();
         let d3: Duration = d2.into();
         assert_eq!(d1, d3);
         assert_eq!(d1.0, d2);
