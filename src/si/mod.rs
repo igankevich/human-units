@@ -25,7 +25,6 @@ pub use self::units::*;
 /// Add SI unit parsing and formatting functions.
 ///
 /// The macro adds the following trait implementations:
-/// - [`FormatSi`]
 /// - [`Display`](::core::fmt::Display)
 /// - [`FromStr`](::core::str::FromStr)
 #[cfg_attr(

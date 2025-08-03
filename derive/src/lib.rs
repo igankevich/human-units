@@ -256,8 +256,7 @@ fn generic_unit(
                                 // Compute the first digit of the fractional part.
                                 fraction /= (SCALE / 10);
                             }
-                            //debug_assert!(integer <= 999, "integer = {integer}");
-                            debug_assert!(fraction <= 9, "fraction = {fraction}");
+                            debug_assert!(fraction <= 9);
                             return #crate_name::imp::FormattedUnit::new(
                                 #crate_name::imp::#prefixes[#powers_rev],
                                 Self::SYMBOL,
@@ -269,7 +268,6 @@ fn generic_unit(
                 )*
                 let integer = self.0;
                 let fraction = 0;
-                //debug_assert!(integer <= 999, "integer = {integer}");
                 #crate_name::imp::FormattedUnit::new(
                     #crate_name::imp::#prefixes[#min_power],
                     Self::SYMBOL,
@@ -293,12 +291,12 @@ fn generic_unit(
                                 fraction = match fraction.checked_mul(5) {
                                     Some(numerator) => numerator / (SCALE / 2),
                                     None => {
-                                        debug_assert_eq!(0, SCALE % 16);
+                                        debug_assert!(0 == SCALE % 16);
                                         (fraction / 8) * 5 / (SCALE / 16)
                                     }
                                 };
                             }
-                            debug_assert!(fraction <= 9, "fraction = {fraction}");
+                            debug_assert!(fraction <= 9);
                             return #crate_name::imp::FormattedUnit::new(
                                 #crate_name::imp::#prefixes[#powers_rev],
                                 Self::SYMBOL,
@@ -377,7 +375,7 @@ fn generic_unit(
 
             /// Represent the value as a number using the largest possible unit prefix.
             #[allow(clippy::modulo_one)]
-            pub fn #format(&self) -> #crate_name::imp::FormattedUnit<'static, #uint, { Self::MAX_STRING_LEN }> {
+            pub const fn #format(&self) -> #crate_name::imp::FormattedUnit<'static, #uint, { Self::MAX_STRING_LEN }> {
                 #format_unit
             }
         }
