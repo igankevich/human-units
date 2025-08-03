@@ -108,10 +108,10 @@ assert_eq!(args.size, Size(1024_u64.pow(3)));
 ### SI units
 
 ```rust
-use human_units::si::{FormatSi, Frequency};
+use human_units::si::{FormatSi, Frequency, Prefix};
 
 // Convert from hertz, internal representation is nHz (nanohertz).
-let cpu_freq = Frequency::from_si(2200_000_000);
+let cpu_freq = Frequency::with_si_prefix(2200, Prefix::Mega);
 assert_eq!("2200 MHz", cpu_freq.to_string());
 assert_eq!("2.2 GHz", cpu_freq.format_si().to_string());
 ```
@@ -120,9 +120,9 @@ assert_eq!("2.2 GHz", cpu_freq.format_si().to_string());
 ### IEC units
 
 ```rust
-use human_units::iec::{FormatIec, Byte};
+use human_units::iec::{FormatIec, Byte, Prefix};
 
-let size = Byte::from_iec(1536 * 1024);
+let size = Byte::with_iec_prefix(1536, Prefix::Kibi);
 assert_eq!("1536 KiB", size.to_string());
 assert_eq!("1.5 MiB", size.format_iec().to_string());
 ```

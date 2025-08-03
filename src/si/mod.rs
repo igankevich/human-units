@@ -15,12 +15,10 @@
 //!   Turn off `unicode` feature to replace them with alternative ASCII-only representation.
 
 mod core;
-mod macros;
 #[cfg(feature = "si-units")]
 mod units;
 
 pub use self::core::*;
-pub(crate) use self::macros::*;
 #[cfg(feature = "si-units")]
 pub use self::units::*;
 
@@ -41,6 +39,10 @@ pub use self::units::*;
 ///
 /// Macro parameters:
 /// - `symbol` is the unit name without SI prefix, e.g. `"Hz"`, `"°C"`.
+/// - `min_prefix` is the minimum SI prefix, e.g. `"K"`, `"M"`, `""`.
+///   Equals `"nano"` by default.
+/// - `max_prefix` is the maximum SI prefix, e.g. `"G"`, `"T"`.
+///   By default equals the largest prefix an underlying integer type can hold.
 ///
 /// # Example
 ///

@@ -18,6 +18,4 @@ macro_rules! parameterize {
 parameterize! {
     u128
     u64
-    u32
-    u16
 }

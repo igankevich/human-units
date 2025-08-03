@@ -55,7 +55,8 @@ impl FromStr for Size {
                     1 => unit_to_factor(unit.as_bytes()[0])?,
                     _ => return Err(SizeError),
                 };
-                Ok(Self(size * factor))
+                let value = size.checked_mul(factor).ok_or(SizeError)?;
+                Ok(Self(value))
             }
         }
     }
@@ -156,6 +157,13 @@ mod tests {
         let d3: Size = d2.into();
         assert_eq!(d1, d3);
         assert_eq!(d1.0, d2);
+    }
+
+    #[test]
+    fn from_str_overflow_does_not_panic() {
+        let expected = u64::MAX;
+        let string = format!("{expected}t");
+        assert!(string.parse::<Size>().is_err(), "string = {string:?}");
     }
 
     #[test]

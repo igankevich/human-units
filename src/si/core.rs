@@ -1,24 +1,8 @@
 use paste::paste;
 
-use crate::si::unicode;
-use crate::u128_is_multiple_of;
-use crate::u16_is_multiple_of;
-use crate::u32_is_multiple_of;
-use crate::u64_is_multiple_of;
+use crate::imp::SI_PREFIXES as PREFIXES;
 use crate::Buffer;
-
-/// SI unit parsing error.
-#[derive(Debug)]
-pub struct Error;
-
-impl core::fmt::Display for Error {
-    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        core::fmt::Debug::fmt(self, f)
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for Error {}
+use crate::Error;
 
 /// Parse value from a string with SI unit.
 pub trait SiFromStr {
@@ -70,6 +54,21 @@ pub struct FormattedUnit<'symbol> {
 }
 
 impl<'symbol> FormattedUnit<'symbol> {
+    /// Create new instance.
+    pub const fn new(
+        prefix: &'static str,
+        symbol: &'symbol str,
+        integer: u16,
+        fraction: u8,
+    ) -> Self {
+        Self {
+            prefix,
+            symbol,
+            integer,
+            fraction,
+        }
+    }
+
     /// Unit prefix.
     pub const fn prefix(&self) -> &'static str {
         self.prefix
@@ -123,23 +122,14 @@ macro_rules! parameterize {
         ($($ilog: expr)+)))+) => {
         paste! {
             $(
-                fn [<unitify_ $uint>](mut value: $uint) -> ($uint, usize) {
-                    if value == 0 {
-                        return (0, Prefix::None as usize);
-                    }
-                    for prefix in Prefix::$min_prefix as usize..Prefix::$max_prefix as usize {
-                        if ![<$uint _is_multiple_of>](value, 1000) {
-                            return (value, prefix);
-                        }
-                        value /= 1000;
-                    }
-                    (value, Prefix::$max_prefix as usize)
-                }
-
                 impl<const N: usize> Buffer<N> {
                     #[doc(hidden)]
-                    pub fn [<write_si_unit_ $uint>](&mut self, value: $uint, symbol: &str) {
-                        let (value, i) = [<unitify_ $uint>](value);
+                    pub fn [<write_unit_ $uint _1000>]<const MIN: usize, const MAX: usize>(
+                        &mut self,
+                        value: $uint,
+                        symbol: &str,
+                    ) {
+                        let (value, i) = $crate::imp::[<unitify_ $uint _1000>]::<MIN, MAX>(value);
                         self.[<write_ $uint>](value);
                         self.write_byte(b' ');
                         self.write_str_infallible(PREFIXES[i]);
@@ -164,32 +154,21 @@ macro_rules! parameterize {
                             <$uint as SiDisplay>::MAX_STRING_LEN - max_string_len!($uint),
                         );
                         let mut buffer: Buffer<{ <$uint as SiDisplay>::MAX_STRING_LEN }> = Buffer::new();
-                        buffer.[<write_si_unit_ $uint>](self.number, self.symbol);
+                        buffer.[<write_unit_ $uint _1000>]::<
+                            { Prefix::$min_prefix as usize},
+                            { Prefix::$max_prefix as usize}
+                        >(self.number, self.symbol);
                         f.write_str(unsafe { buffer.as_str() })
                     }
                 }
 
                 impl SiFromStr for $uint {
                     fn si_unit_from_str(string: &str, symbol: &str) -> Result<Self, Error> {
-                        let string = string.trim();
-                        let Some(i) = string.rfind(char::is_numeric) else {
-                            return Err(Error);
-                        };
-                        let value: $uint = string[..=i].parse().map_err(|_| Error)?;
-                        let unit = string[(i + 1)..].trim_start();
-                        if !unit.ends_with(symbol) {
-                            return Err(Error);
-                        }
-                        let prefix_str = &unit[..unit.len() - symbol.len()];
-                        let Some(i) = PREFIXES
-                            .iter()
-                            .skip(Prefix::$min_prefix as usize)
-                            .position(|prefix| *prefix == prefix_str)
-                        else {
-                            return Err(Error);
-                        };
-                        let factor = (1000 as $uint).pow(i as u32);
-                        Ok(value * factor)
+                        $crate::imp::[<$uint _unit_from_str>]::<{ 1000 as $uint }>(
+                            string,
+                            symbol,
+                            &PREFIXES[Prefix::$min_prefix as usize..=Prefix::$max_prefix as usize]
+                        )
                     }
                 }
 
@@ -239,7 +218,10 @@ macro_rules! parameterize {
                     fn [<test_unitify_ $uint>]() {
                         arbtest(|u| {
                             let number: $uint = u.arbitrary()?;
-                            let (x, prefix) = [<unitify_ $uint>](number);
+                            let (x, prefix) = $crate::imp::[<unitify_ $uint _1000>]::<
+                                { Prefix::$min_prefix as usize},
+                                { Prefix::$max_prefix as usize}
+                            >(number);
                             let p = prefix as u32 - Prefix::$min_prefix as u32;
                             assert_eq!(number, x * (1000 as $uint).pow(p));
                             Ok(())
@@ -258,7 +240,10 @@ macro_rules! parameterize {
                             let number: $uint = u.arbitrary()?;
                             let symbol: String = char::from_u32(u.int_in_range(b'a'..=b'z')? as u32).unwrap().to_string();
                             let mut buffer = Buffer::<MAX_LEN>::new();
-                            buffer.[<write_si_unit_ $uint>](number, &symbol);
+                            buffer.[<write_unit_ $uint _1000>]::<
+                                { Prefix::$min_prefix as usize},
+                                { Prefix::$max_prefix as usize}
+                            >(number, &symbol);
                             let actual = $uint::si_unit_from_str(unsafe { buffer.as_str() }, &symbol).unwrap();
                             assert_eq!(number, actual);
                             Ok(())
@@ -281,8 +266,20 @@ macro_rules! parameterize {
                     fn [<check_max_prefix_ $uint>]() {
                         const MAX_POW_OF_1000: $uint = (1000 as $uint).pow($uint::MAX.ilog(1000));
                         assert_eq!(None, MAX_POW_OF_1000.checked_mul(1000));
-                        assert_eq!((1, Prefix::Micro as usize), [<unitify_ $uint>](1000));
-                        assert_eq!((1, Prefix::$max_prefix as usize), [<unitify_ $uint>](MAX_POW_OF_1000));
+                        assert_eq!(
+                            (1, Prefix::Micro as usize),
+                            $crate::imp::[<unitify_ $uint _1000>]::<
+                                { Prefix::$min_prefix as usize},
+                                { Prefix::$max_prefix as usize}
+                            >(1000)
+                        );
+                        assert_eq!(
+                            (1, Prefix::$max_prefix as usize),
+                            $crate::imp::[<unitify_ $uint _1000>]::<
+                                { Prefix::$min_prefix as usize},
+                                { Prefix::$max_prefix as usize}
+                            >(MAX_POW_OF_1000)
+                        );
                     }
 
                     #[test]
@@ -313,41 +310,68 @@ parameterize! {
     (u16 Nano Micro (1))
 }
 
+/// SI unit prefix.
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(all(test, feature = "std"), derive(arbitrary::Arbitrary))]
 #[repr(u8)]
-#[allow(dead_code)]
-pub(crate) enum Prefix {
+pub enum Prefix {
+    /// "q".
     Quecto = 0,
+    /// "r".
     Ronto = 1,
+    /// "y".
     Yocto = 2,
+    /// "z".
     Zepto = 3,
+    /// "a".
     Atto = 4,
+    /// "f".
     Femto = 5,
+    /// "p".
     Pico = 6,
+    /// "n".
     Nano = 7,
+    /// "μ".
     Micro = 8,
+    /// "m".
     Milli = 9,
+    /// "".
     #[default]
     None = 10,
+    /// "k".
     Kilo = 11,
+    /// "M".
     Mega = 12,
+    /// "G".
     Giga = 13,
+    /// "T".
     Tera = 14,
+    /// "P".
     Peta = 15,
+    /// "E".
     Exa = 16,
+    /// "Z".
     Zetta = 17,
+    /// "Y".
     Yotta = 18,
+    /// "R".
     Ronna = 19,
+    /// "Q".
     Quetta = 20,
 }
 
-pub(crate) const PREFIXES: [&str; 21] = [
-    "q", "r", "y", "z", "a", "f", "p", "n", MICRO, "m", "", "k", "M", "G", "T", "P", "E", "Z", "Y",
-    "R", "Q",
-];
+impl Prefix {
+    /// Get unit prefix as a string.
+    pub const fn as_str(self) -> &'static str {
+        crate::imp::SI_PREFIXES[self as usize]
+    }
+}
 
-const MICRO: &str = unicode!("μ", "u");
+impl core::fmt::Display for Prefix {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
 
 #[cfg(test)]
 mod tests {

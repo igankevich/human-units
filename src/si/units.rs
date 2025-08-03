@@ -60,9 +60,24 @@ define_units! {
 }
 
 /// Data size.
-#[deprecated(
-    since = "0.5.0",
-    note = "Uses the wrong min. prefix (nano). Using custom prefix is not yet supported."
-)]
-#[si_unit(symbol = "B", internal)]
+#[si_unit(symbol = "B", min_prefix = "", max_prefix = "exa", internal)]
 pub struct Size(pub u64);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn from_si_works() {
+        let cpu_freq = Frequency::from_si(2200_000_000);
+        assert_eq!("2200 MHz", cpu_freq.to_string());
+        assert_eq!("2.2 GHz", cpu_freq.format_si().to_string());
+    }
+
+    #[test]
+    fn size_works() {
+        let size = Size::from_si(1536_000);
+        assert_eq!("1536 kB", size.to_string());
+        assert_eq!("1.5 MB", size.format_si().to_string());
+    }
+}

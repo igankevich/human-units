@@ -25,3 +25,16 @@ define_units! {
     (Erlang "E" "Traffic intensity in percentage per hour.")
     (Baud "Bd" "Modulation rate in symbols per second.")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[allow(deprecated)]
+    #[test]
+    fn from_iec_works() {
+        let size = Byte::from_iec(1536 * 1024);
+        assert_eq!("1536 KiB", size.to_string());
+        assert_eq!("1.5 MiB", size.format_iec().to_string());
+    }
+}

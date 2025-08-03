@@ -2,11 +2,9 @@
 //!
 //! All units start with no prefix, end with _quebi_ prefix, and use [`u64`](::core::u64) as the underlying type.
 
-use crate::u128_is_multiple_of;
-use crate::u16_is_multiple_of;
-use crate::u32_is_multiple_of;
-use crate::u64_is_multiple_of;
+use crate::imp::IEC_PREFIXES as PREFIXES;
 use crate::Buffer;
+use crate::Error;
 use paste::paste;
 
 #[cfg(feature = "iec-units")]
@@ -32,6 +30,9 @@ pub use self::units::*;
 ///
 /// Macro parameters:
 /// - `symbol` is the unit name without IEC prefix, e.g. `"Hart"`, `"bit"`.
+/// - `min_prefix` is the minimum IEC prefix, e.g. `"Ki"`, `"Mi"`, `""`. No prefix by default.
+/// - `max_prefix` is the maximum IEC prefix, e.g. `"Gi"`, `"Ti"`.
+///   By default equals the largest prefix an underlying integer type can hold.
 ///
 /// # Example
 ///
@@ -46,19 +47,6 @@ struct Nit(pub u64);
 )]
 #[cfg(feature = "derive")]
 pub use human_units_derive::iec_unit;
-
-/// IEC unit parsing error.
-#[derive(Debug)]
-pub struct Error;
-
-impl core::fmt::Display for Error {
-    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        core::fmt::Debug::fmt(self, f)
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for Error {}
 
 /// Display IEC unit value.
 pub trait IecDisplay {
@@ -110,6 +98,21 @@ pub struct FormattedUnit<'symbol> {
 }
 
 impl<'symbol> FormattedUnit<'symbol> {
+    /// Create new instance.
+    pub const fn new(
+        prefix: &'static str,
+        symbol: &'symbol str,
+        integer: u16,
+        fraction: u8,
+    ) -> Self {
+        Self {
+            prefix,
+            symbol,
+            integer,
+            fraction,
+        }
+    }
+
     /// Unit prefix.
     pub const fn prefix(&self) -> &'static str {
         self.prefix
@@ -166,25 +169,14 @@ macro_rules! parameterize {
     ))+) => {
         paste! {
             $(
-                pub(crate) fn [<unitify_ $uint>](value: $uint) -> ($uint, usize) {
-                    if value == 0 {
-                        return (0, Prefix::None as usize);
-                    }
-                    $(
-                        {
-                            const POW: $uint = (1024 as $uint).pow($ilog);
-                            if [<$uint _is_multiple_of>](value, POW) {
-                                return (value >> (10 * $ilog), $ilog);
-                            }
-                        }
-                    )+
-                    (value, Prefix::None as usize)
-                }
-
                 impl<const N: usize> Buffer<N> {
                     #[doc(hidden)]
-                    pub fn [<write_iec_unit_ $uint>](&mut self, value: $uint, symbol: &str) {
-                        let (value, i) = [<unitify_ $uint>](value);
+                    pub fn [<write_unit_ $uint _1024>]<const MIN: usize, const MAX: usize>(
+                        &mut self,
+                        value: $uint,
+                        symbol: &str,
+                    ) {
+                        let (value, i) = $crate::imp::[<unitify_ $uint _1024>]::<MIN, MAX>(value);
                         self.[<write_ $uint>](value);
                         self.write_byte(b' ');
                         self.write_str_infallible(PREFIXES[i]);
@@ -209,31 +201,18 @@ macro_rules! parameterize {
                             <$uint as IecDisplay>::MAX_STRING_LEN - max_string_len!($uint),
                         );
                         let mut buffer: Buffer<{ <$uint as IecDisplay>::MAX_STRING_LEN }> = Buffer::new();
-                        buffer.[<write_iec_unit_ $uint>](self.number, self.symbol);
+                        buffer.[<write_unit_ $uint _1024>]::<0, { Prefix::$max_prefix as usize }>(self.number, self.symbol);
                         f.write_str(unsafe { buffer.as_str() })
                     }
                 }
 
                 impl IecFromStr for $uint {
                     fn iec_unit_from_str(string: &str, symbol: &str) -> Result<Self, Error> {
-                        let string = string.trim();
-                        let Some(i) = string.rfind(char::is_numeric) else {
-                            return Err(Error);
-                        };
-                        let value: $uint = string[..=i].parse().map_err(|_| Error)?;
-                        let unit = string[(i + 1)..].trim_start();
-                        if !unit.ends_with(symbol) {
-                            return Err(Error);
-                        }
-                        let prefix_str = &unit[..unit.len() - symbol.len()];
-                        let Some(i) = PREFIXES
-                            .iter()
-                            .position(|prefix| *prefix == prefix_str)
-                        else {
-                            return Err(Error);
-                        };
-                        let factor = (1024 as $uint).pow(i as u32);
-                        Ok(value * factor)
+                        $crate::imp::[<$uint _unit_from_str>]::<1024>(
+                            string,
+                            symbol,
+                            &PREFIXES[..=Prefix::$max_prefix as usize]
+                        )
                     }
                 }
 
@@ -292,7 +271,7 @@ macro_rules! parameterize {
                     fn [<test_unitify_ $uint>]() {
                         arbtest(|u| {
                             let number: $uint = u.arbitrary()?;
-                            let (x, prefix) = [<unitify_ $uint>](number);
+                            let (x, prefix) = $crate::imp::[<unitify_ $uint _1024>]::<0, { Prefix::$max_prefix as usize }>(number);
                             let p = prefix as u32 - Prefix::None as u32;
                             let multiplier = (1024 as $uint).pow(p);
                             assert_eq!(number, x * multiplier, "x = {x}, multiplier = {multiplier}");
@@ -312,8 +291,9 @@ macro_rules! parameterize {
                             let number: $uint = u.arbitrary()?;
                             let symbol: String = char::from_u32(u.int_in_range(b'a'..=b'z')? as u32).unwrap().to_string();
                             let mut buffer = Buffer::<MAX_LEN>::new();
-                            buffer.[<write_iec_unit_ $uint>](number, &symbol);
-                            let actual = $uint::iec_unit_from_str(unsafe { buffer.as_str() }, &symbol).unwrap();
+                            buffer.[<write_unit_ $uint _1024>]::<0, { Prefix::$max_prefix as usize }>(number, &symbol);
+                            let actual = $uint::iec_unit_from_str(unsafe { buffer.as_str() }, &symbol)
+                                .unwrap_or_else(|_| panic!("String = {:?}, number = {number}, symbol = {symbol:?}", unsafe { buffer.as_str() }));
                             assert_eq!(number, actual);
                             Ok(())
                         });
@@ -335,10 +315,13 @@ macro_rules! parameterize {
                     fn [<check_prefix_ $uint>]() {
                         const MAX_POW_OF_1024: $uint = (1024 as $uint).pow($uint::MAX.ilog(1024));
                         assert_eq!(None, MAX_POW_OF_1024.checked_mul(1024));
-                        assert_eq!((1, Prefix::Kibi as usize), [<unitify_ $uint>](1024));
+                        assert_eq!(
+                            (1, Prefix::Kibi as usize),
+                            $crate::imp::[<unitify_ $uint _1024>]::<0, { Prefix::$max_prefix as usize }>(1024)
+                        );
                         assert_eq!(
                             ($max_prefix_integer, Prefix::$max_prefix as usize),
-                            [<unitify_ $uint>](MAX_POW_OF_1024),
+                            $crate::imp::[<unitify_ $uint _1024>]::<0, { Prefix::$max_prefix as usize }>(MAX_POW_OF_1024),
                             "MAX_POW_OF_1024 = {MAX_POW_OF_1024}"
                         );
                     }
@@ -372,28 +355,48 @@ parameterize! {
     (u16 Kibi (1) (1023) (1))
 }
 
+/// IEC unit prefix.
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(all(test, feature = "std"), derive(arbitrary::Arbitrary))]
 #[repr(u8)]
-#[allow(dead_code)]
-enum Prefix {
+pub enum Prefix {
+    /// "", 1024^0.
     #[default]
     None = 0,
+    /// "Ki", 1024^1.
     Kibi = 1,
+    /// "Mi", 1024^2.
     Mebi = 2,
+    /// "Gi", 1024^3.
     Gibi = 3,
+    /// "Ti", 1024^4.
     Tebi = 4,
+    /// "Pi", 1024^5.
     Pebi = 5,
+    /// "Ei", 1024^6.
     Exbi = 6,
+    /// "Zi", 1024^7.
     Zebi = 7,
+    /// "Yi", 1024^8.
     Yobi = 8,
+    /// "Ri", 1024^9.
     Robi = 9,
+    /// "Qi", 1024^10.
     Quebi = 10,
 }
 
-const PREFIXES: [&str; 11] = [
-    "", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi", "Yi", "Ri", "Qi",
-];
+impl Prefix {
+    /// Get unit prefix as a string.
+    pub const fn as_str(self) -> &'static str {
+        crate::imp::IEC_PREFIXES[self as usize]
+    }
+}
+
+impl core::fmt::Display for Prefix {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
 
 #[cfg(all(test, feature = "std"))]
 mod tests {

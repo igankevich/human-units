@@ -56,11 +56,12 @@ impl FromStr for Duration {
                 let duration: u128 = other[..=i].parse().map_err(|_| DurationError)?;
                 let unit = other[(i + 1)..].trim();
                 let factor = unit_to_factor(unit)? as u128;
-                let duration = duration * factor;
-                Ok(Self(StdDuration::new(
-                    (duration / NANOS_PER_SEC as u128) as u64,
-                    (duration % NANOS_PER_SEC as u128) as u32,
-                )))
+                let duration = duration.checked_mul(factor).ok_or(DurationError)?;
+                let seconds: u64 = (duration / NANOS_PER_SEC as u128)
+                    .try_into()
+                    .map_err(|_| DurationError)?;
+                let nanoseconds = (duration % NANOS_PER_SEC as u128) as u32;
+                Ok(Self(StdDuration::new(seconds, nanoseconds)))
             }
         }
     }
@@ -194,6 +195,16 @@ mod tests {
         let d3: Duration = d2.into();
         assert_eq!(d1, d3);
         assert_eq!(d1.0, d2);
+    }
+
+    #[test]
+    fn from_str_overflow_does_not_panic() {
+        let expected = u64::MAX;
+        let string = format!("{expected}d");
+        assert!(string.parse::<Duration>().is_err(), "string = {string:?}");
+        let expected = u128::MAX;
+        let string = format!("{expected}d");
+        assert!(string.parse::<Duration>().is_err(), "string = {string:?}");
     }
 
     #[test]
