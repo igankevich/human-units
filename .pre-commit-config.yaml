@@ -10,13 +10,13 @@ repos:
       - id: cargo-check
         name: cargo check
         language: system
-        entry: cargo check --tests --workspace --quiet --features derive,serde,std
+        entry: cargo check --tests --workspace --quiet --features derive,serde,std,si-units,iec-units
         types: [rust]
         pass_filenames: false
       - id: cargo-clippy
         name: cargo clippy
         language: system
-        entry: cargo clippy --tests --workspace --quiet --features derive,serde,std
+        entry: cargo clippy --tests --workspace --quiet --features derive,serde,std,si-units,iec-units
           -- -D warnings
         types: [rust]
         pass_filenames: false
