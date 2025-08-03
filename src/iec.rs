@@ -395,6 +395,14 @@ impl Prefix {
     pub const fn as_str(self) -> &'static str {
         crate::imp::IEC_PREFIXES[self as usize]
     }
+
+    /// All prefixes.
+    pub const ALL: [Self; 11] = {
+        use Prefix::*;
+        [
+            None, Kibi, Mebi, Gibi, Tebi, Pebi, Exbi, Zebi, Yobi, Robi, Quebi,
+        ]
+    };
 }
 
 impl core::fmt::Display for Prefix {

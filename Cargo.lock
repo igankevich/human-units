@@ -337,8 +337,13 @@ dependencies = [
 name = "human-units-tests"
 version = "0.5.2"
 dependencies = [
- "quote",
- "syn",
+ "arbtest",
+ "human-units",
+ "paste",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "toml",
 ]
 
 [[package]]

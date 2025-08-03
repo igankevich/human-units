@@ -165,12 +165,8 @@ fn generic_unit(
     let max_prefix_name = Ident::new(&max_prefix_name, Span::call_site().into());
     let uint_string_len = max_uint_string_len(uint.to_string().as_str());
     let space_len = 1;
-    let min_prefix_len = prefix_strs[min_power..=max_power]
-        .iter()
-        .map(|s| s.len())
-        .min()
-        .expect("We have at least one power");
-    let max_string_len = uint_string_len + space_len + min_prefix_len + symbol.len();
+    let max_prefix_len = prefix_strs[min_power].len();
+    let max_string_len = uint_string_len + space_len + max_prefix_len + symbol.len();
     let serde_visitor = Ident::new(&format!("{newtype}HumanUnitsSerdeVisitor"), newtype.span());
     let crate_name = if internal {
         let mut segments = Punctuated::new();

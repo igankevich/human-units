@@ -371,6 +371,15 @@ impl Prefix {
     pub const fn as_str(self) -> &'static str {
         crate::imp::SI_PREFIXES[self as usize]
     }
+
+    /// All prefixes.
+    pub const ALL: [Self; 21] = {
+        use Prefix::*;
+        [
+            Quecto, Ronto, Yocto, Zepto, Atto, Femto, Pico, Nano, Micro, Milli, None, Kilo, Mega,
+            Giga, Tera, Peta, Exa, Zetta, Yotta, Ronna, Quetta,
+        ]
+    };
 }
 
 impl core::fmt::Display for Prefix {

@@ -97,7 +97,7 @@ macro_rules! parameterize {
                     if value == 0 {
                         return (0, MIN);
                     }
-                    for power_of_1000 in MIN.max(1)..MAX {
+                    for power_of_1000 in MIN..MAX {
                         if value % 1000 != 0 {
                             return (value, power_of_1000);
                         }
@@ -131,10 +131,10 @@ macro_rules! parameterize {
                     if value == 0 {
                         return (0, MIN);
                     }
-                    for p in (MIN.max(1)..=MAX).rev() {
+                    for p in (0..=MAX - MIN).rev() {
                         let scale = (1024 as $uint).pow(p as u32);
                         if value % scale == 0 {
-                            return (value >> (10 * p), p);
+                            return (value >> (10 * p), p + MIN);
                         }
                     }
                     (value, MIN)

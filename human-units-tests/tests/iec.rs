@@ -7,23 +7,25 @@ use human_units::imp::IEC_PREFIXES;
 use paste::paste;
 
 macro_rules! parameterize {
-    ($(($uint: ident
+    ($(($module: ident
+        $uint: ident
+        $min_prefix_str: literal
         $max_prefix_str: literal
+        $min_prefix_ident: ident
         $max_prefix_ident: ident
-        $max_prefix_symbol: literal
         ))+) => {
         paste! {
             $(
-                mod [<_ $uint>] {
+                mod $module {
                     use super::*;
 
-                    #[iec_unit(symbol = "B", min_prefix = "", max_prefix = $max_prefix_str)]
+                    #[iec_unit(symbol = "B", min_prefix = $min_prefix_str, max_prefix = $max_prefix_str)]
                     struct Size($uint);
 
                     #[test]
                     fn constants_are_correct() {
                         assert_eq!("B", Size::SYMBOL);
-                        assert_eq!(iec::Prefix::None, Size::MIN_PREFIX);
+                        assert_eq!(iec::Prefix::$min_prefix_ident, Size::MIN_PREFIX);
                         assert_eq!(iec::Prefix::$max_prefix_ident, Size::MAX_PREFIX);
                     }
 
@@ -36,23 +38,32 @@ macro_rules! parameterize {
 
                     #[test]
                     fn try_with_iec_prefix_works() {
-                        assert!(Size::try_with_iec_prefix(1, iec::Prefix::None).is_ok());
+                        assert!(Size::try_with_iec_prefix(1, iec::Prefix::$min_prefix_ident).is_ok());
                         assert!(Size::try_with_iec_prefix(1, iec::Prefix::$max_prefix_ident).is_ok());
-                        assert!(Size::try_with_iec_prefix($uint::MAX, iec::Prefix::None).is_ok());
-                        assert!(Size::try_with_iec_prefix($uint::MAX, iec::Prefix::$max_prefix_ident).is_err());
+                        assert!(Size::try_with_iec_prefix($uint::MAX, iec::Prefix::$min_prefix_ident).is_ok());
+                        if stringify!($min_prefix_ident) == stringify!($max_prefix_ident) {
+                            assert!(Size::try_with_iec_prefix($uint::MAX, iec::Prefix::$max_prefix_ident).is_ok());
+                        } else {
+                            assert!(Size::try_with_iec_prefix($uint::MAX, iec::Prefix::$max_prefix_ident).is_err());
+                        }
                     }
 
                     #[test]
                     fn with_iec_prefix_works() {
                         // Should not panic.
-                        let _ = Size::with_iec_prefix(1, iec::Prefix::None);
+                        let _ = Size::with_iec_prefix(1, iec::Prefix::$min_prefix_ident);
                         let _ = Size::with_iec_prefix(1, iec::Prefix::$max_prefix_ident);
-                        let _ = Size::with_iec_prefix($uint::MAX, iec::Prefix::None);
+                        let _ = Size::with_iec_prefix($uint::MAX, iec::Prefix::$min_prefix_ident);
                     }
 
                     #[test]
                     #[should_panic = "attempt to multiply with overflow"]
                     fn with_iec_prefix_panics() {
+                        if stringify!($min_prefix_ident) == stringify!($max_prefix_ident) {
+                            // Should not panic.
+                            let _ = Size::with_iec_prefix($uint::MAX, iec::Prefix::$max_prefix_ident);
+                            panic!("attempt to multiply with overflow");
+                        }
                         let _ = Size::with_iec_prefix($uint::MAX, iec::Prefix::$max_prefix_ident);
                     }
 
@@ -61,7 +72,7 @@ macro_rules! parameterize {
                         arbtest(|u| {
                             let exact = Size(u.arbitrary()?);
                             let formatted = exact.format_iec();
-                            let i = IEC_PREFIXES.iter().position(|p| p == &formatted.prefix()).unwrap() - iec::Prefix::None as usize;
+                            let i = IEC_PREFIXES.iter().position(|p| p == &formatted.prefix()).unwrap() - iec::Prefix::$min_prefix_ident as usize;
                             let factor = (1024 as $uint).pow(i as u32);
                             let inexact = (formatted.integer() as $uint) * factor +
                                 (formatted.fraction() as $uint) * (factor / 10);
@@ -78,18 +89,16 @@ macro_rules! parameterize {
                         arbtest(|u| {
                             let size = Size(u.arbitrary()?);
                             let string = size.to_string();
-                            // TODO will not work if MAX_PREFIX == None
-                            let number_str = (Size::MIN_PREFIX as u8..=Size::MAX_PREFIX as u8)
-                                .rev()
-                                .find_map(|p| {
-                                    let suffix = format!("{}B", IEC_PREFIXES[p as usize]);
-                                    string.ends_with(&suffix)
-                                        .then_some(&string[..string.len() - suffix.len()])
-                                })
-                                .unwrap();
+                            let s = string.trim();
+                            let i = s.chars().take_while(|ch| ch.is_numeric()).count();
+                            let _number = &s[..i];
+                            let suffix = s[i..].trim();
+                            assert!(suffix.ends_with(Size::SYMBOL), "string = {string:?}");
+                            let prefix = &suffix[..suffix.len() - Size::SYMBOL.len()];
                             assert!(
-                                number_str.trim_end().chars().all(char::is_numeric),
-                                "number str = {number_str:?}"
+                                (Size::MIN_PREFIX as u8..=Size::MAX_PREFIX as u8)
+                                    .any(|p| IEC_PREFIXES[p as usize] == prefix),
+                                "string = {string:?}"
                             );
                             Ok(())
                         });
@@ -102,7 +111,8 @@ macro_rules! parameterize {
                             let prefix = *u.choose(&["", " ", "  "]).unwrap();
                             let infix = *u.choose(&["", " ", "  "]).unwrap();
                             let suffix = *u.choose(&["", " ", "  "]).unwrap();
-                            let string = format!("{prefix}{expected}{infix}B{suffix}");
+                            let iec_prefix = $min_prefix_str;
+                            let string = format!("{prefix}{expected}{infix}{iec_prefix}B{suffix}");
                             let actual: Size = string.parse()
                                 .unwrap_or_else(|e| panic!("Failed to parse {string:?}: {e}"));
                             assert_eq!(expected, actual.0);
@@ -113,8 +123,12 @@ macro_rules! parameterize {
                     #[test]
                     fn from_str_overflow_does_not_panic() {
                         let expected = $uint::MAX;
-                        let string = format!("{expected} {}B", $max_prefix_symbol);
-                        assert!(string.parse::<Size>().is_err(), "string = {string:?}");
+                        let string = format!("{expected} {}B", $max_prefix_str);
+                        if stringify!($min_prefix_ident) == stringify!($max_prefix_ident) {
+                            assert!(string.parse::<Size>().is_ok(), "string = {string:?}");
+                        } else {
+                            assert!(string.parse::<Size>().is_err(), "string = {string:?}");
+                        }
                     }
 
                     #[test]
@@ -129,7 +143,6 @@ macro_rules! parameterize {
                         });
                     }
 
-                    #[cfg(feature = "serde")]
                     mod serde {
                         use super::*;
 
@@ -176,9 +189,11 @@ macro_rules! parameterize {
     };
 }
 
-parameterize! {
-    (u128 "quebi" Quebi "Qi")
-    (u64 "exbi" Exbi "Ei")
-    (u32 "gibi" Gibi "Gi")
-    (u16 "kibi" Kibi "Ki")
-}
+//parameterize! {
+//    (u128 "quebi" Quebi "Qi")
+//    (u64 "exbi" Exbi "Ei")
+//    (u32 "gibi" Gibi "Gi")
+//    (u16 "kibi" Kibi "Ki")
+//}
+
+include!(concat!(env!("OUT_DIR"), "/iec_tests.rs"));

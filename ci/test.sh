@@ -8,8 +8,8 @@ clean() {
 }
 
 test_all() {
-    cargo test --workspace --quiet --no-run "$@"
-    cargo test --workspace --no-fail-fast "$@" -- --nocapture
+    cargo test --quiet --no-run "$@"
+    cargo test --no-fail-fast "$@"
 }
 
 test_coverage_preamble() {
@@ -51,8 +51,10 @@ do_test_miri() {
 clean
 export ARBTEST_BUDGET_MS=10000
 #test_coverage_preamble
-test_all --no-default-features --features derive,si-units,iec-units,serde,std
-test_all --no-default-features --features derive,si-units,iec-units,serde --tests
+test_all --workspace --no-default-features --features derive,si-units,iec-units,serde,std --lib
+test_all --workspace --no-default-features --features derive,si-units,iec-units,serde --lib
+export ARBTEST_BUDGET_MS=100
+test_all --package human-units-tests
 #test_coverage_postamble
 unset ARBTEST_BUDGET_MS
 test_miri
