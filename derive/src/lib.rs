@@ -257,7 +257,7 @@ fn generic_unit(
                                 fraction /= (SCALE / 10);
                             }
                             debug_assert!(fraction <= 9);
-                            return #crate_name::imp::FormattedUnit::new(
+                            return #crate_name::FormattedUnit::new(
                                 #crate_name::imp::#prefixes[#powers_rev],
                                 Self::SYMBOL,
                                 integer,
@@ -268,7 +268,7 @@ fn generic_unit(
                 )*
                 let integer = self.0;
                 let fraction = 0;
-                #crate_name::imp::FormattedUnit::new(
+                #crate_name::FormattedUnit::new(
                     #crate_name::imp::#prefixes[#min_power],
                     Self::SYMBOL,
                     integer,
@@ -297,7 +297,7 @@ fn generic_unit(
                                 };
                             }
                             debug_assert!(fraction <= 9);
-                            return #crate_name::imp::FormattedUnit::new(
+                            return #crate_name::FormattedUnit::new(
                                 #crate_name::imp::#prefixes[#powers_rev],
                                 Self::SYMBOL,
                                 integer,
@@ -307,7 +307,7 @@ fn generic_unit(
                     }
                 )*
                 let integer = self.0;
-                #crate_name::imp::FormattedUnit::new(
+                #crate_name::FormattedUnit::new(
                     #crate_name::imp::#prefixes[#min_power],
                     Self::SYMBOL,
                     integer,
@@ -375,7 +375,7 @@ fn generic_unit(
 
             /// Represent the value as a number using the largest possible unit prefix.
             #[allow(clippy::modulo_one)]
-            pub const fn #format(&self) -> #crate_name::imp::FormattedUnit<'static, #uint, { Self::MAX_STRING_LEN }> {
+            pub const fn #format(&self) -> #crate_name::FormattedUnit<'static, #uint, { Self::MAX_STRING_LEN }> {
                 #format_unit
             }
         }
