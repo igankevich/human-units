@@ -31,7 +31,8 @@ pub use self::units::*;
 /// - `symbol` is the unit name without IEC prefix, e.g. `"Hart"`, `"bit"`.
 /// - `min_prefix` is the minimum IEC prefix, e.g. `"Ki"`, `"Mi"`, `""`. No prefix by default.
 /// - `max_prefix` is the maximum IEC prefix, e.g. `"Gi"`, `"Ti"`.
-///   By default equals the largest prefix an underlying integer type can hold.
+///   By default equals the largest prefix an underlying integer type can hold with respect to
+///   `min_prefix`.
 ///
 /// # Example
 ///
