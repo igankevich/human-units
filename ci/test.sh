@@ -2,6 +2,22 @@
 
 . ./ci/preamble.sh
 
+main() {
+    clean
+    if test "$1" = "slow"; then
+        export ARBTEST_BUDGET_MS=100
+        test_all --package human-units-tests
+        exit 0
+    fi
+    export ARBTEST_BUDGET_MS=10000
+    #test_coverage_preamble
+    test_all --workspace --no-default-features --features derive,si-units,iec-units,serde,std --lib
+    test_all --workspace --no-default-features --features derive,si-units,iec-units,serde --lib
+    #test_coverage_postamble
+    unset ARBTEST_BUDGET_MS
+    test_miri
+}
+
 clean() {
     find target -type f -name '*.profraw' -delete || true
     find target -type f -name '*.gcda' -delete || true
@@ -48,13 +64,4 @@ do_test_miri() {
     env MIRIFLAGS=-Zmiri-disable-isolation cargo +nightly miri test --features derive,si-units,iec-units,serde --tests "$@"
 }
 
-clean
-export ARBTEST_BUDGET_MS=10000
-#test_coverage_preamble
-test_all --workspace --no-default-features --features derive,si-units,iec-units,serde,std --lib
-test_all --workspace --no-default-features --features derive,si-units,iec-units,serde --lib
-export ARBTEST_BUDGET_MS=100
-test_all --package human-units-tests
-#test_coverage_postamble
-unset ARBTEST_BUDGET_MS
-test_miri
+main "$@"
