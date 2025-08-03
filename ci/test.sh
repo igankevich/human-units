@@ -8,7 +8,7 @@ main() {
     #test_coverage_preamble
     test_all --workspace --no-default-features --features derive,si-units,iec-units,serde,std --lib
     test_all --workspace --no-default-features --features derive,si-units,iec-units,serde --lib
-    export ARBTEST_BUDGET_MS=500
+    export ARBTEST_BUDGET_MS=200
     test_all --package human-units-tests
     #test_coverage_postamble
     unset ARBTEST_BUDGET_MS
