@@ -137,7 +137,7 @@ use human_units::iec::iec_unit;
 #[si_unit(symbol = "l")]
 struct Volume(pub u64);
 
-let volume = Volume(2200_000_000);
+let volume = Volume(2_200_000_000);
 assert_eq!("2200 ml", volume.to_string());
 
 #[iec_unit(symbol = "B/s")]

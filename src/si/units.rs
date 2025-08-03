@@ -69,14 +69,14 @@ mod tests {
 
     #[test]
     fn from_si_works() {
-        let cpu_freq = Frequency::from_si(2200_000_000);
+        let cpu_freq = Frequency::from_si(2_200_000_000);
         assert_eq!("2200 MHz", cpu_freq.to_string());
         assert_eq!("2.2 GHz", cpu_freq.format_si().to_string());
     }
 
     #[test]
     fn size_works() {
-        let size = Size::from_si(1536_000);
+        let size = Size::from_si(1_536_000);
         assert_eq!("1536 kB", size.to_string());
         assert_eq!("1.5 MB", size.format_si().to_string());
     }
