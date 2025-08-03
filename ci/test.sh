@@ -4,23 +4,31 @@
 
 main() {
     clean
-    if test "$1" = "slow"; then
-        export ARBTEST_BUDGET_MS=100
-        test_all --package human-units-tests
-        exit 0
-    fi
     export ARBTEST_BUDGET_MS=10000
     #test_coverage_preamble
     test_all --workspace --no-default-features --features derive,si-units,iec-units,serde,std --lib
     test_all --workspace --no-default-features --features derive,si-units,iec-units,serde --lib
+    export ARBTEST_BUDGET_MS=500
+    test_all --package human-units-tests
     #test_coverage_postamble
     unset ARBTEST_BUDGET_MS
     test_miri
 }
 
+test_miri() {
+    cargo +nightly miri setup --quiet
+    do_test_miri --quiet --no-run
+    do_test_miri
+}
+
+do_test_miri() {
+    env MIRIFLAGS=-Zmiri-disable-isolation cargo +nightly \
+        miri test --features derive,si-units,iec-units,serde --lib "$@"
+}
+
 clean() {
-    find target -type f -name '*.profraw' -delete || true
-    find target -type f -name '*.gcda' -delete || true
+    find target -type f -name '*.profraw' -delete 2>/dev/null || true
+    find target -type f -name '*.gcda' -delete 2>/dev/null || true
 }
 
 test_all() {
@@ -52,16 +60,6 @@ test_coverage_postamble() {
         --ignore-errors source \
         --legend \
         target/debug/lcov.info
-}
-
-test_miri() {
-    cargo +nightly miri setup --quiet
-    do_test_miri --quiet --no-run
-    do_test_miri
-}
-
-do_test_miri() {
-    env MIRIFLAGS=-Zmiri-disable-isolation cargo +nightly miri test --features derive,si-units,iec-units,serde --tests "$@"
 }
 
 main "$@"
