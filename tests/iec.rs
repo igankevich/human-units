@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use arbtest::arbtest;
 use human_units::iec;
 use human_units::iec::iec_unit;

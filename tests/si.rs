@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 // TODO dedup wtih `tests/iec.rs`
 use arbtest::arbtest;
 use human_units::imp::SI_PREFIXES;
