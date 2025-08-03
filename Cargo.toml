@@ -28,7 +28,7 @@ iec-units = ["derive"]
 
 [dependencies]
 serde = { version = "1.0.219", features = ["derive"], optional = true }
-human-units-derive = { path = "derive", version = "=0.5.2", optional = true }
+human-units-derive = { path = "derive", version = "=0.5.3", optional = true }
 paste = "1.0.15"
 
 [dev-dependencies]
@@ -57,7 +57,7 @@ members = [".", "derive", "human-units-tests"]
 default-members = [".", "derive", "human-units-tests"]
 
 [workspace.package]
-version = "0.5.2"
+version = "0.5.3"
 edition = "2021"
 license = "MIT"
 homepage = "https://github.com/igankevich/human-units"
