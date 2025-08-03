@@ -1,4 +1,6 @@
 /// An approximate value that consists of integer and fraction parts, prefix and symbol.
+///
+/// This type is useful when you need custom formatting of the output, i.e. colors, locale-specific units etc.
 pub struct FormattedUnit<'symbol, T, const N: usize> {
     pub(crate) prefix: &'static str,
     pub(crate) symbol: &'symbol str,

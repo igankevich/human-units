@@ -1,10 +1,9 @@
-#![doc(hidden)]
-
 use core::mem::transmute;
 use core::mem::MaybeUninit;
 use core::str::from_utf8_unchecked;
 use paste::paste;
 
+#[doc(hidden)]
 pub struct Buffer<const N: usize> {
     data: [MaybeUninit<u8>; N],
     position: usize,
@@ -27,15 +26,21 @@ impl<const N: usize> Buffer<N> {
         let bytes = s.as_bytes();
         let n = bytes.len().min(N - self.position);
         let src = &mut self.data[self.position..(self.position + n)];
-        let uninit_src: &mut [u8] = unsafe { transmute(src) };
+        let uninit_src: &mut [u8] = unsafe { transmute::<&mut [MaybeUninit<u8>], &mut [u8]>(src) };
         uninit_src.copy_from_slice(&bytes[..n]);
         self.position += n;
     }
 
     pub fn as_slice(&self) -> &[u8] {
-        unsafe { transmute(&self.data[..self.position]) }
+        // SAFETY: Bytes up to `self.position` are initialized.
+        unsafe { transmute::<&[MaybeUninit<u8>], &[u8]>(&self.data[..self.position]) }
     }
 
+    /// # Safety
+    ///
+    /// This methods returns a valid UTF-8 string if
+    /// - `Self::write_byte` was used to write only valid UTF-8 characters to this buffer, and
+    /// - `Self::write_str_infallible` did not truncate in the middle of the character on buffer overflow.
     pub unsafe fn as_str(&self) -> &str {
         from_utf8_unchecked(self.as_slice())
     }
@@ -44,6 +49,13 @@ impl<const N: usize> Buffer<N> {
 impl<const N: usize> Default for Buffer<N> {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl<const N: usize> core::fmt::Write for Buffer<N> {
+    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        self.write_str_infallible(s);
+        Ok(())
     }
 }
 
@@ -116,9 +128,13 @@ macro_rules! parameterize_width {
 
 macro_rules! parameterize {
     ($(
-        $uint: ident,
-        $algo: ident,
-        (($($ilog_left: expr,)+), $ilog_midpoint: expr, ($($ilog_right: expr,)+)),
+        $uint: ident
+        $algo: ident
+        (
+            ($($ilog_left: literal)+)
+            $ilog_midpoint: literal
+            ($($ilog_right: literal)+)
+        )
     )+) => {
         paste! {
             $(
@@ -189,21 +205,10 @@ macro_rules! parameterize {
 }
 
 parameterize! {
-    u128, bisection_1,
-    ((1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,),
-    20,
-    (20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38,)),
-    u64, bisection_1,
-    ((1, 2, 3, 4, 5, 6, 7, 8, 9,), 10, (10, 11, 12, 13, 14, 15, 16, 17, 18, 19,)),
-    u32, ilog10, ((1, 2, 3, 4,), 5, (5, 6, 7, 8, 9,)),
-    u16, bisection_1, ((1, 2,), 2, (3, 4,)),
-}
-
-impl<const N: usize> core::fmt::Write for Buffer<N> {
-    fn write_str(&mut self, s: &str) -> core::fmt::Result {
-        self.write_str_infallible(s);
-        Ok(())
-    }
+    u128 bisection_1 ((1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19) 20 (20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38))
+    u64 bisection_1 ((1 2 3 4 5 6 7 8 9) 10 (10 11 12 13 14 15 16 17 18 19))
+    u32 ilog10 ((1 2 3 4) 5 (5 6 7 8 9))
+    u16 bisection_1 ((1 2) 2 (3 4))
 }
 
 #[cfg(test)]
@@ -224,7 +229,7 @@ mod tests {
                 }
             }};
         }
-        check!(u16, 4, 3);
+        check!(u16, 4, 2);
         check!(u32, 9, 5);
         check!(u64, 19, 10);
         check!(u128, 38, 20);
