@@ -15,6 +15,7 @@ rust-version.workspace = true
 
 [package.metadata.docs.rs]
 features = ["serde", "std", "derive", "si-units", "iec-units"]
+rustdoc-args = ["--generate-macro-expansion", "--generate-link-to-definition"]
 
 [features]
 default = ["std", "unicode"]
