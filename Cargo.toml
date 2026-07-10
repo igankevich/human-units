@@ -15,6 +15,7 @@ rust-version.workspace = true
 
 [package.metadata.docs.rs]
 features = ["serde", "std", "derive", "si-units", "iec-units"]
+rustdoc-args = ["--generate-macro-expansion", "--generate-link-to-definition"]
 
 [features]
 default = ["std", "unicode"]
@@ -27,8 +28,8 @@ si-units = ["derive"]
 iec-units = ["derive"]
 
 [dependencies]
-serde = { version = "1.0.219", features = ["derive"], optional = true }
-human-units-derive = { path = "derive", version = "=0.5.3", optional = true }
+serde = { version = "1.0.228", features = ["derive"], optional = true }
+human-units-derive = { path = "derive", version = "=0.5.4", optional = true }
 pastey = "0.2.3"
 
 [dev-dependencies]
@@ -57,7 +58,7 @@ members = [".", "derive", "human-units-tests"]
 default-members = [".", "derive", "human-units-tests"]
 
 [workspace.package]
-version = "0.5.3"
+version = "0.5.4"
 edition = "2021"
 license = "MIT"
 homepage = "https://github.com/igankevich/human-units"
