@@ -2,7 +2,7 @@
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use human_units::Buffer;
-use paste::paste;
+use pastey::paste;
 
 fn criterion_benchmark(c: &mut Criterion) {
     macro_rules! bench {

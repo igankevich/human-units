@@ -1,6 +1,6 @@
 use crate::Buffer;
 use crate::Error;
-use paste::paste;
+use pastey::paste;
 
 #[cfg(feature = "serde")]
 pub use serde;

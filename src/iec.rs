@@ -5,7 +5,7 @@
 use crate::imp::IEC_PREFIXES as PREFIXES;
 use crate::Buffer;
 use crate::Error;
-use paste::paste;
+use pastey::paste;
 
 #[cfg(feature = "iec-units")]
 mod units;

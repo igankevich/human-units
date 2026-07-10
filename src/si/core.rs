@@ -1,4 +1,4 @@
-use paste::paste;
+use pastey::paste;
 
 use crate::imp::SI_PREFIXES as PREFIXES;
 use crate::Buffer;

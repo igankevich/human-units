@@ -1,4 +1,4 @@
-use paste::paste;
+use pastey::paste;
 
 macro_rules! parameterize {
     ($($uint: ident)+) => {

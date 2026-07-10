@@ -4,7 +4,7 @@ use arbtest::arbtest;
 use human_units::iec;
 use human_units::iec::iec_unit;
 use human_units::imp::IEC_PREFIXES;
-use paste::paste;
+use pastey::paste;
 
 macro_rules! parameterize {
     ($(($module: ident

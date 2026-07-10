@@ -3,7 +3,7 @@
 use core::mem::transmute;
 use core::mem::MaybeUninit;
 use core::str::from_utf8_unchecked;
-use paste::paste;
+use pastey::paste;
 
 pub struct Buffer<const N: usize> {
     data: [MaybeUninit<u8>; N],

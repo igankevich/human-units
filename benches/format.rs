@@ -1,7 +1,7 @@
 #![allow(missing_docs)]
 
 use criterion::{criterion_group, criterion_main, Criterion};
-use paste::paste;
+use pastey::paste;
 use std::hint::black_box;
 
 macro_rules! bench {

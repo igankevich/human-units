@@ -29,7 +29,7 @@ iec-units = ["derive"]
 [dependencies]
 serde = { version = "1.0.219", features = ["derive"], optional = true }
 human-units-derive = { path = "derive", version = "=0.5.3", optional = true }
-paste = "1.0.15"
+pastey = "0.2.3"
 
 [dev-dependencies]
 arbitrary = { version = "1.4.1", features = ["derive", "derive_arbitrary"] }

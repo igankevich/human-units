@@ -5,7 +5,7 @@ use arbtest::arbtest;
 use human_units::imp::SI_PREFIXES;
 use human_units::si;
 use human_units::si::si_unit;
-use paste::paste;
+use pastey::paste;
 
 macro_rules! parameterize {
     ($(($module: ident
