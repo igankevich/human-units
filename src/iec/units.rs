@@ -9,6 +9,7 @@ macro_rules! define_units {
         $(
             #[doc = $description]
             #[iec_unit(symbol = $symbol, internal)]
+            #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
             pub struct $name(pub u64);
         )*
     };

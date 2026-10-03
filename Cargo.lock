@@ -333,7 +333,7 @@ checksum = "f58b778a5761513caf593693f8951c97a5b610841e754788400f32102eefdff1"
 
 [[package]]
 name = "human-units"
-version = "0.5.4"
+version = "0.6.0"
 dependencies = [
  "arbitrary",
  "arbtest",
@@ -352,7 +352,7 @@ dependencies = [
 
 [[package]]
 name = "human-units-derive"
-version = "0.5.4"
+version = "0.6.0"
 dependencies = [
  "quote",
  "syn",
@@ -360,7 +360,7 @@ dependencies = [
 
 [[package]]
 name = "human-units-tests"
-version = "0.5.4"
+version = "0.6.0"
 dependencies = [
  "arbtest",
  "human-units",
