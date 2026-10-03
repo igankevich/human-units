@@ -11,6 +11,7 @@ macro_rules! define_units {
         $(
             #[doc = $description]
             #[si_unit(symbol = $symbol, internal)]
+            #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
             pub struct $name(pub u64);
         )*
     };
@@ -61,6 +62,7 @@ define_units! {
 
 /// Data size.
 #[si_unit(symbol = "B", min_prefix = "", max_prefix = "exa", internal)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Size(pub u64);
 
 #[cfg(test)]
